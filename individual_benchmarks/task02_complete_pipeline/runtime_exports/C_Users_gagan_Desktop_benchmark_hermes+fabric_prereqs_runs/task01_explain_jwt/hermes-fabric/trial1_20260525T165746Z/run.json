@@ -1,0 +1,8 @@
+{
+  "task_id": "task01_explain_jwt",
+  "variant": "hermes-fabric",
+  "trial": 1,
+  "ts": "20260525T165746Z",
+  "total_ms": 33248,
+  "tests_exit_code": "na"
+}

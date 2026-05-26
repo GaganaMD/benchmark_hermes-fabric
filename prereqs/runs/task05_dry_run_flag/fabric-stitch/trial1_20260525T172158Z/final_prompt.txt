@@ -1,0 +1,25 @@
+### 1) Change Plan
+1. Inspect `src/cli.py` and `tests/test_cli.py` to identify current argument parsing and file-write paths.
+2. Add `--dry-run` argument to CLI parsing and propagate `dry_run` into write-capable execution flow(s).
+3. Guard file write boundaries so they are skipped when `dry_run=True`, and emit clear dry-run feedback.
+4. Add/adjust tests in `tests/test_cli.py` (including `test_cli_dry_run_prevents_file_writes`) to verify dry-run behavior and default non-dry-run behavior.
+5. Run verification (`pytest -x`) and report FR-1..FR-5 status.
+
+### 2) Code Changes
+I’m missing the repository file contents, so I can’t produce accurate unified diffs yet without risking incorrect edits. Please provide the current contents of:
+- `src/cli.py`
+- `tests/test_cli.py`
+- any helper module that `src/cli.py` calls for writing files (if applicable)
+
+Once provided, I will return exact `apply_patch`-style diffs for those files only.
+
+### 3) Validation
+- FR-1 CLI accepts `--dry-run`: **Pending implementation (awaiting file contents)**
+- FR-2 Dry-run suppresses file writes: **Pending implementation**
+- FR-3 Default behavior unchanged: **Pending implementation**
+- FR-4 Clear user dry-run feedback: **Pending implementation**
+- FR-5 Automated test coverage added: **Pending implementation**
+
+Planned test names (at minimum):
+- `test_cli_dry_run_prevents_file_writes`
+- (if feasible) a non-dry-run counterpart consistent with existing suite style.

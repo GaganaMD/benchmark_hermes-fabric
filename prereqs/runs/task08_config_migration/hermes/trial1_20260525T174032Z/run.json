@@ -1,0 +1,8 @@
+{
+  "task_id": "task08_config_migration",
+  "variant": "hermes",
+  "trial": 1,
+  "ts": "20260525T174032Z",
+  "total_ms": 68995,
+  "tests_exit_code": "0"
+}

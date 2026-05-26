@@ -1,0 +1,148 @@
+warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
+Reading additional input from stdin...
+OpenAI Codex v0.133.0
+--------
+workdir: C:\Users\gagan\Desktop\benchmark_hermes+fabric\prereqs\fixtures\task01_explain_jwt
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: none
+reasoning summaries: none
+session id: 019e6323-f860-76e3-ad2e-ff8a86d72104
+--------
+user
+1. Plan
+   1. Inspect repository files to identify `auth/jwt.py` and any related artifacts in scope.
+   2. Extract JWT validation and refresh logic directly from code with evidence references.
+   3. Draft the requested markdown with required top-level sections and explicit unknowns where artifacts are missing.
+   4. Run verification command(s) and report DONE WHEN status.
+
+I can’t proceed with code edits because this task is documentation generation, but I still need to inspect the actual source artifacts. Right now, the required baseline PRD template is also missing (the prompt includes a placeholder: `"[PASTE THE USER'S PRD TEMPLATE HERE VERBATIM AS THE SCHEMA TO FILL, preserving section numbering and intent]"`).
+
+Please provide:
+- The repository files (or at minimum `auth/jwt.py` and related auth/config/error/test files), and
+- The actual PRD template text to preserve numbered structure.
+
+Once provided, I’ll produce the code-accurate PRD exactly in the required format with evidence citations and explicit unknowns.
+codex
+I’ll inspect the workspace directly first, since the files are available under the current `cwd`. I’ll also check whether a PRD template or task instructions exist in the fixture before deciding what can be produced.
+exec
+"C:\\Program Files\\7\\pwsh.exe" -Command 'rg --files' in C:\Users\gagan\Desktop\benchmark_hermes+fabric\prereqs\fixtures\task01_explain_jwt
+exec
+"C:\\Program Files\\7\\pwsh.exe" -Command 'Get-ChildItem -Force' in C:\Users\gagan\Desktop\benchmark_hermes+fabric\prereqs\fixtures\task01_explain_jwt
+2026-05-26T07:16:12.765615Z ERROR codex_core::exec: exec error: windows sandbox: spawn setup refresh
+2026-05-26T07:16:12.768609Z ERROR codex_core::exec: exec error: windows sandbox: spawn setup refresh
+ exited -1 in 0ms:
+execution error: Io(Custom { kind: Other, error: "windows sandbox: spawn setup refresh" })
+ exited -1 in 0ms:
+execution error: Io(Custom { kind: Other, error: "windows sandbox: spawn setup refresh" })
+2026-05-26T07:16:12.770107Z ERROR codex_core::tools::router: error=execution error: Io(Custom { kind: Other, error: "windows sandbox: spawn setup refresh" })
+2026-05-26T07:16:12.822023Z ERROR codex_core::tools::router: error=execution error: Io(Custom { kind: Other, error: "windows sandbox: spawn setup refresh" })
+codex
+The first shell attempt failed during sandbox setup, before any repository command ran. I’m going to use the Node REPL filesystem APIs as a fallback so I can still inspect the fixture without needing shell startup.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+I found a compact fixture: `auth/jwt.py`, `brief.md`, `prompt.txt`, `pattern.txt`, and `requirements.txt`. Next I’m reading those files to recover the requested output schema and the code behavior.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+The task’s schema is present in `brief.md`, so there’s no missing template problem in this workspace. I’m calculating line references from `auth/jwt.py` now so the explanation can cite exact evidence.
+mcp: node_repl/js started
+mcp: node_repl/js (completed)
+codex
+## PURPOSE
+
+`auth/jwt.py` issues paired access and refresh JWTs, then validates access tokens and exchanges refresh tokens for a new pair. It uses a fixed HS256 secret and fixed TTLs: 15 minutes for access tokens and 7 days for refresh tokens (`auth/jwt.py:6`, `auth/jwt.py:7`, `auth/jwt.py:8`, `auth/jwt.py:9`).
+
+## FLOW
+
+1. `issue(sub)`
+   1. Captures the current Unix timestamp with `int(time.time())` (`auth/jwt.py:13`).
+   2. Creates an access token with `sub`, `iat`, and `exp = now + ACCESS_TTL` (`auth/jwt.py:14`, `auth/jwt.py:15`).
+   3. Signs the access token using `SECRET` and `ALGO` (`auth/jwt.py:16`).
+   4. Creates a refresh token with `sub`, `iat`, `exp = now + REFRESH_TTL`, and `typ = "refresh"` (`auth/jwt.py:18`, `auth/jwt.py:19`).
+   5. Signs the refresh token using `SECRET` and `ALGO` (`auth/jwt.py:20`).
+   6. Returns both tokens as `{"access": access, "refresh": refresh}` (`auth/jwt.py:22`).
+
+2. `validate(token)`
+   1. Decodes the token using `SECRET` and allowed algorithm `ALGO` (`auth/jwt.py:28`).
+   2. Returns `None` if PyJWT raises `ExpiredSignatureError` (`auth/jwt.py:29`, `auth/jwt.py:30`).
+   3. Returns `None` if PyJWT raises `InvalidTokenError` (`auth/jwt.py:31`, `auth/jwt.py:32`).
+   4. Returns `None` if the decoded claims have `typ == "refresh"` (`auth/jwt.py:33`, `auth/jwt.py:34`).
+   5. Otherwise returns the decoded claims dictionary (`auth/jwt.py:35`).
+
+3. `refresh(refresh_token)`
+   1. Decodes the refresh token using `SECRET` and allowed algorithm `ALGO` (`auth/jwt.py:41`).
+   2. Returns `None` if PyJWT raises `InvalidTokenError` (`auth/jwt.py:42`, `auth/jwt.py:43`).
+   3. Returns `None` if the decoded claims do not have `typ == "refresh"` (`auth/jwt.py:44`, `auth/jwt.py:45`).
+   4. Calls `issue(claims["sub"])` to return a fresh access/refresh pair for the same subject (`auth/jwt.py:46`).
+
+## EDGE CASES
+
+- Expired access token during `validate`: returns `None` via `ExpiredSignatureError` (`auth/jwt.py:29`, `auth/jwt.py:30`).
+- Invalid token during `validate`: returns `None` via `InvalidTokenError` (`auth/jwt.py:31`, `auth/jwt.py:32`).
+- Refresh token passed to `validate`: returns `None` when `typ == "refresh"` (`auth/jwt.py:33`, `auth/jwt.py:34`).
+- Invalid token during `refresh`: returns `None` via `InvalidTokenError` (`auth/jwt.py:42`, `auth/jwt.py:43`).
+- Access token or token without `typ == "refresh"` passed to `refresh`: returns `None` (`auth/jwt.py:44`, `auth/jwt.py:45`).
+- Refresh token missing `sub`: raises `KeyError`, because `claims["sub"]` is indexed directly and not caught (`auth/jwt.py:46`).
+
+## GOTCHAS
+
+- Refresh tokens cannot be used as access tokens; `validate` rejects claims with `typ == "refresh"` (`auth/jwt.py:33`, `auth/jwt.py:34`).
+- Access tokens have no `typ` claim when issued, so callers should not require `typ` to identify valid access tokens (`auth/jwt.py:15`, `auth/jwt.py:33`, `auth/jwt.py:35`).
+- `refresh` requires `typ == "refresh"`; a normal access token will not refresh successfully (`auth/jwt.py:44`, `auth/jwt.py:45`).
+- The signing secret is a module-level constant, so secret rotation is not represented in this code (`auth/jwt.py:6`, `auth/jwt.py:16`, `auth/jwt.py:20`).
+- No clock skew or leeway is configured in the decode calls (`auth/jwt.py:28`, `auth/jwt.py:41`).
+- `refresh` assumes a valid refresh token contains `sub`; missing `sub` is not converted to `None` (`auth/jwt.py:46`).
+
+DONE WHEN: completed. No files modified. Verification per `brief.md`: none, read-only.
+tokens used
+14,932
+## PURPOSE
+
+`auth/jwt.py` issues paired access and refresh JWTs, then validates access tokens and exchanges refresh tokens for a new pair. It uses a fixed HS256 secret and fixed TTLs: 15 minutes for access tokens and 7 days for refresh tokens (`auth/jwt.py:6`, `auth/jwt.py:7`, `auth/jwt.py:8`, `auth/jwt.py:9`).
+
+## FLOW
+
+1. `issue(sub)`
+   1. Captures the current Unix timestamp with `int(time.time())` (`auth/jwt.py:13`).
+   2. Creates an access token with `sub`, `iat`, and `exp = now + ACCESS_TTL` (`auth/jwt.py:14`, `auth/jwt.py:15`).
+   3. Signs the access token using `SECRET` and `ALGO` (`auth/jwt.py:16`).
+   4. Creates a refresh token with `sub`, `iat`, `exp = now + REFRESH_TTL`, and `typ = "refresh"` (`auth/jwt.py:18`, `auth/jwt.py:19`).
+   5. Signs the refresh token using `SECRET` and `ALGO` (`auth/jwt.py:20`).
+   6. Returns both tokens as `{"access": access, "refresh": refresh}` (`auth/jwt.py:22`).
+
+2. `validate(token)`
+   1. Decodes the token using `SECRET` and allowed algorithm `ALGO` (`auth/jwt.py:28`).
+   2. Returns `None` if PyJWT raises `ExpiredSignatureError` (`auth/jwt.py:29`, `auth/jwt.py:30`).
+   3. Returns `None` if PyJWT raises `InvalidTokenError` (`auth/jwt.py:31`, `auth/jwt.py:32`).
+   4. Returns `None` if the decoded claims have `typ == "refresh"` (`auth/jwt.py:33`, `auth/jwt.py:34`).
+   5. Otherwise returns the decoded claims dictionary (`auth/jwt.py:35`).
+
+3. `refresh(refresh_token)`
+   1. Decodes the refresh token using `SECRET` and allowed algorithm `ALGO` (`auth/jwt.py:41`).
+   2. Returns `None` if PyJWT raises `InvalidTokenError` (`auth/jwt.py:42`, `auth/jwt.py:43`).
+   3. Returns `None` if the decoded claims do not have `typ == "refresh"` (`auth/jwt.py:44`, `auth/jwt.py:45`).
+   4. Calls `issue(claims["sub"])` to return a fresh access/refresh pair for the same subject (`auth/jwt.py:46`).
+
+## EDGE CASES
+
+- Expired access token during `validate`: returns `None` via `ExpiredSignatureError` (`auth/jwt.py:29`, `auth/jwt.py:30`).
+- Invalid token during `validate`: returns `None` via `InvalidTokenError` (`auth/jwt.py:31`, `auth/jwt.py:32`).
+- Refresh token passed to `validate`: returns `None` when `typ == "refresh"` (`auth/jwt.py:33`, `auth/jwt.py:34`).
+- Invalid token during `refresh`: returns `None` via `InvalidTokenError` (`auth/jwt.py:42`, `auth/jwt.py:43`).
+- Access token or token without `typ == "refresh"` passed to `refresh`: returns `None` (`auth/jwt.py:44`, `auth/jwt.py:45`).
+- Refresh token missing `sub`: raises `KeyError`, because `claims["sub"]` is indexed directly and not caught (`auth/jwt.py:46`).
+
+## GOTCHAS
+
+- Refresh tokens cannot be used as access tokens; `validate` rejects claims with `typ == "refresh"` (`auth/jwt.py:33`, `auth/jwt.py:34`).
+- Access tokens have no `typ` claim when issued, so callers should not require `typ` to identify valid access tokens (`auth/jwt.py:15`, `auth/jwt.py:33`, `auth/jwt.py:35`).
+- `refresh` requires `typ == "refresh"`; a normal access token will not refresh successfully (`auth/jwt.py:44`, `auth/jwt.py:45`).
+- The signing secret is a module-level constant, so secret rotation is not represented in this code (`auth/jwt.py:6`, `auth/jwt.py:16`, `auth/jwt.py:20`).
+- No clock skew or leeway is configured in the decode calls (`auth/jwt.py:28`, `auth/jwt.py:41`).
+- `refresh` assumes a valid refresh token contains `sub`; missing `sub` is not converted to `None` (`auth/jwt.py:46`).
+
+DONE WHEN: completed. No files modified. Verification per `brief.md`: none, read-only.

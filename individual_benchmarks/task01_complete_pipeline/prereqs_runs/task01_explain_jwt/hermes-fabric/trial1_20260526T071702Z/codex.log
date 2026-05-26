@@ -1,0 +1,49 @@
+Good news: I do have auth/jwt.py here, so I can explain your exact implementation directly.
+
+Access token validation (validate):
+- decode step:
+  - pyjwt.decode(token, SECRET, algorithms=[ALGO])
+  - This verifies:
+    - signature (HS256 with shared SECRET)
+    - exp claim (expiry) automatically
+- error handling:
+  - ExpiredSignatureError -> returns None
+  - InvalidTokenError -> returns None (bad signature, malformed token, wrong alg, etc.)
+- claim-type guard:
+  - if claims["typ"] == "refresh" -> returns None
+  - prevents using a refresh token as an access token
+- success path:
+  - returns claims dict
+
+Refresh flow (refresh):
+- decode refresh token with same SECRET/ALGO
+- on any InvalidTokenError -> None
+  - includes expired refresh tokens too
+- explicit type check:
+  - typ must equal "refresh", otherwise None
+- success path:
+  - returns issue(claims["sub"])
+  - i.e., new access + new refresh token pair is minted
+
+Token issuance (issue):
+- access token payload: {"sub","iat","exp"} with 15 min TTL
+- refresh token payload: {"sub","iat","exp","typ":"refresh"} with 7 day TTL
+- both signed with same key and algorithm
+
+Key edge cases / security implications in this implementation:
+- No revocation store:
+  - stolen refresh token remains usable until expiry
+- No refresh token rotation enforcement:
+  - it does mint a new refresh token, but does not invalidate old one server-side
+- Shared symmetric secret for all tokens:
+  - if SECRET leaks, all tokens are forgeable
+- Hardcoded dev secret:
+  - SECRET = "dev-secret-change-me" is unsafe outside local fixture use
+- Minimal claim validation:
+  - no issuer (iss), audience (aud), jti, device/session binding, or nonce checks
+- Null-only error signaling:
+  - validate/refresh both return None for all failures, so callers can’t distinguish expired vs malformed vs tampered without extra logging
+
+In short:
+- For a benchmark fixture, this is clean and intentionally minimal.
+- For production, the biggest gap is refresh-token lifecycle control (rotation + revocation persistence), then secret management and stronger claim policy.

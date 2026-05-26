@@ -1,0 +1,65 @@
+diff --git a/src/__pycache__/cli.cpython-311.pyc b/src/__pycache__/cli.cpython-311.pyc
+index 47e0d96..1018214 100644
+Binary files a/src/__pycache__/cli.cpython-311.pyc and b/src/__pycache__/cli.cpython-311.pyc differ
+diff --git a/src/cli.py b/src/cli.py
+index 5ca276b..2dee909 100644
+--- a/src/cli.py
++++ b/src/cli.py
+@@ -3,24 +3,35 @@ import click
+ from pathlib import Path
+ 
+ @click.group()
+-def cli():
+-    pass
++@click.option("--dry-run", is_flag=True, help="Preview actions without writing files.")
++@click.pass_context
++def cli(ctx, dry_run):
++    ctx.ensure_object(dict)
++    ctx.obj["dry_run"] = dry_run
+ 
+ @cli.command()
+ @click.argument("name")
+ @click.option("--content", default="hello\n")
+-def write(name, content):
++@click.pass_context
++def write(ctx, name, content):
+     """Write CONTENT to a file named NAME."""
++    if ctx.obj.get("dry_run"):
++        click.echo(f"[dry-run] would write {name}")
++        return
+     Path(name).write_text(content)
+     click.echo(f"wrote {name}")
+ 
+ @cli.command()
+ @click.argument("name")
+ @click.option("--suffix", default=".bak")
+-def rename(name, suffix):
++@click.pass_context
++def rename(ctx, name, suffix):
+     """Rename NAME to NAME+SUFFIX."""
+     src = Path(name)
+     dst = src.with_suffix(src.suffix + suffix)
++    if ctx.obj.get("dry_run"):
++        click.echo(f"[dry-run] would rename {name} -> {dst}")
++        return
+     src.rename(dst)
+     click.echo(f"renamed {name} -> {dst}")
+ 
+diff --git a/tests/__pycache__/test_cli.cpython-311-pytest-8.4.1.pyc b/tests/__pycache__/test_cli.cpython-311-pytest-8.4.1.pyc
+index 587dc9e..592a315 100644
+Binary files a/tests/__pycache__/test_cli.cpython-311-pytest-8.4.1.pyc and b/tests/__pycache__/test_cli.cpython-311-pytest-8.4.1.pyc differ
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 349a2cb..c081268 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -7,3 +7,10 @@ def test_write_creates_file(tmp_path, monkeypatch):
+     result = runner.invoke(cli, ["write", "out.txt", "--content", "hi"])
+     assert result.exit_code == 0
+     assert (tmp_path / "out.txt").read_text() == "hi"
++
++def test_write_dry_run_does_not_create_file(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    runner = CliRunner()
++    result = runner.invoke(cli, ["--dry-run", "write", "out.txt", "--content", "hi"])
++    assert result.exit_code == 0
++    assert not (tmp_path / "out.txt").exists()

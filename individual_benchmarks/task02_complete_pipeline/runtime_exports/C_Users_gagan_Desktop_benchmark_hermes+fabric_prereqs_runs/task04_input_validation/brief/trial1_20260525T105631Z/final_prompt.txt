@@ -1,0 +1,31 @@
+# TASK
+Add input validation to `parse_frame()` in `src/parser.py` so that empty input raises `ValueError` with a clear message. Add a test in `tests/test_parser.py` proving the new behavior.
+
+# FILES IN SCOPE
+- `src/parser.py`
+- `tests/test_parser.py`
+
+# FORBIDDEN PATHS
+- Anything else
+
+# DONE WHEN
+- `parse_frame(b"")` raises `ValueError` with a non-empty message
+- A new test in `tests/test_parser.py` asserts the `ValueError` is raised
+- All existing tests still pass
+- `pytest -x` exits 0
+- Behavior on non-empty input is unchanged
+
+# VERIFICATION COMMANDS
+```bash
+pytest -x
+python -c "from src.parser import parse_frame
+try:
+    parse_frame(b'')
+    raise SystemExit('expected ValueError')
+except ValueError as e:
+    assert str(e), 'message must be non-empty'"
+```
+
+# CONSTRAINTS
+- Validate early (before any indexing).
+- No new dependencies.

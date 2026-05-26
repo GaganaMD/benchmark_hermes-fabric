@@ -1,0 +1,55 @@
+Here’s the signup data flow, end-to-end, with exact handoffs:
+
+1) Entry point: `api/handlers.py::post_signup(request)`
+- Reads input from request dict:
+  - `email = (request.get("email") or "").strip().lower()`
+  - `password = request.get("password") or ""`
+- Performs HTTP-layer validation:
+  - missing email/password -> `{"status": 400, "error": "missing fields"}`
+  - password length < 8 -> `{"status": 400, "error": "password too short"}`
+- Calls service layer:
+  - `user_id = signup_user(email, password)`
+- Maps service exception to HTTP:
+  - `UserExists` -> `409 email already registered`
+- Success response:
+  - `201` with `user_id`
+
+2) Business logic: `services/user.py::signup_user(email, password)`
+- First checks uniqueness through repo:
+  - `get_user_by_email(email)`
+  - if found -> raises `UserExists(email)`
+- If not found:
+  - generates random salt: `secrets.token_bytes(16)` (16 bytes)
+  - hashes password with PBKDF2-HMAC-SHA256:
+    - `_hash_password(password, salt)`
+    - iterations: `200_000`
+    - output stored as hex string
+  - calls repo insert:
+    - `insert_user(email=email, password_hash=pw_hash, salt=salt.hex())`
+- Returns inserted row id to handler.
+
+3) Persistence layer: `db/repo.py`
+- `_conn()` opens SQLite DB `users.db` and ensures schema exists (`CREATE TABLE IF NOT EXISTS users (...)`).
+- `get_user_by_email(email)`:
+  - executes `SELECT id, email FROM users WHERE email = ?`
+  - returns dict `{"id": ..., "email": ...}` or `None`
+- `insert_user(...)`:
+  - executes parameterized insert into `users(email, password_hash, salt)`
+  - returns `lastrowid`
+
+Data shape as it moves:
+- HTTP in: `{email, password}`
+- Service internal:
+  - plaintext password (transient)
+  - generated `salt` bytes
+  - derived `password_hash` hex
+- DB write:
+  - `email` (unique)
+  - `password_hash` (hex)
+  - `salt` (hex)
+  - `created_at` auto timestamp
+- HTTP out: `{status: 201, user_id}` (or 400/409 errors)
+
+Important caveat:
+- There is a race window between “check exists” and “insert”.
+- Because DB has `email UNIQUE`, duplicate concurrent signups can still fail at insert time with a SQLite integrity error, but that error is not explicitly caught/mapped in service/handler right now.

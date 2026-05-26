@@ -1,0 +1,24 @@
+1. **Plan**
+- Inspect `src/proto.py` and all `decode_packet(` call sites under `src/` to determine required minimal edits.
+- Update `decode_packet` signature to `def decode_packet(buf, *, strict=False):` and add a minimal strict-mode hook that does not alter default behavior.
+- Adjust internal call sites only if needed for compatibility.
+- Run required verification commands and report DONE status.
+
+2. **Patch**
+
+I’m blocked from applying a real patch because I don’t have filesystem access in this interface/run (no repository files are available to inspect or edit). I can’t safely fabricate diffs without seeing actual code.
+
+3. **Validation**
+
+Blocked: unable to run commands without repository access.
+
+Intended commands:
+- `grep -R "decode_packet(" src/`
+- `pytest -q tests/test_proto.py`
+- `pytest -q` (optional)
+
+4. **Notes**
+
+- **Exact blocker:** Repository/filesystem is not available in this session, so I cannot inspect `src/proto.py`, edit files with `apply_patch`, or execute tests.
+- **Evidence:** No file listing/content or shell execution results are available from this environment.
+- **Smallest next action needed:** Provide repository access (or paste relevant file contents for `src/proto.py` and any `src/` call sites). Then I can produce the exact minimal diff and run the specified validations.

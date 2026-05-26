@@ -1,0 +1,10 @@
+{
+  "variant": "hermes",
+  "trial": "trial1_20260526T095433Z",
+  "batch_ts": "20260526T094832Z",
+  "total_ms": 54870,
+  "rc": 0,
+  "status": "success",
+  "codex_log_size_bytes": 2275,
+  "final_prompt_size_bytes": 116
+}

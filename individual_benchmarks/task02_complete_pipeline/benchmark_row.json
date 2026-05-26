@@ -1,0 +1,81 @@
+{
+  "task_id": "task02_signup_flow",
+  "run_scope": "task2_only_multi_variant_comparative",
+  "output_root": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\individual_benchmarks\\task02_complete_pipeline",
+  "batch_ts": "20260526T094832Z",
+  "variants_executed": [
+    "raw",
+    "fabric",
+    "fabric-improve",
+    "fabric-stitch",
+    "hermes",
+    "hermes-fabric"
+  ],
+  "variant_runs": [
+    {
+      "variant": "raw",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\prereqs\\runs\\task02_signup_flow\\raw\\trial1_20260526T094832Z",
+      "ts": "20260526T094832Z",
+      "total_ms": 90000,
+      "tests_exit_code": "na",
+      "rc": 124,
+      "status": "timeout",
+      "inferred": true
+    },
+    {
+      "variant": "fabric",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\prereqs\\runs\\task02_signup_flow\\fabric\\trial1_20260526T095002Z",
+      "ts": "20260526T095002Z",
+      "total_ms": 90000,
+      "tests_exit_code": "na",
+      "rc": 124,
+      "status": "timeout",
+      "inferred": true
+    },
+    {
+      "variant": "fabric-improve",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\prereqs\\runs\\task02_signup_flow\\fabric-improve\\trial1_20260526T095133Z",
+      "ts": "20260526T095133Z",
+      "total_ms": 90000,
+      "tests_exit_code": "na",
+      "rc": 124,
+      "status": "timeout",
+      "inferred": true
+    },
+    {
+      "variant": "fabric-stitch",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\prereqs\\runs\\task02_signup_flow\\fabric-stitch\\trial1_20260526T095303Z",
+      "ts": "20260526T095303Z",
+      "total_ms": 90000,
+      "tests_exit_code": "na",
+      "rc": 124,
+      "status": "timeout",
+      "inferred": true
+    },
+    {
+      "variant": "hermes",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\prereqs\\runs\\task02_signup_flow\\hermes\\trial1_20260526T095433Z",
+      "ts": "20260526T095433Z",
+      "total_ms": 54870,
+      "tests_exit_code": "na",
+      "rc": 0,
+      "status": "success",
+      "inferred": false
+    },
+    {
+      "variant": "hermes-fabric",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\prereqs\\runs\\task02_signup_flow\\hermes-fabric\\trial1_20260526T095528Z",
+      "ts": "20260526T095528Z",
+      "total_ms": 90000,
+      "tests_exit_code": "na",
+      "rc": 124,
+      "status": "timeout",
+      "inferred": true
+    }
+  ],
+  "notes": [
+    "Sequential only; no matrix scheduler; no tasks beyond task02.",
+    "Timeout wrapper 90s used to prevent hanging runs; timeout entries are explicitly inferred where needed."
+  ],
+  "generated_at_utc": "2026-05-26T09:58:41.856410+00:00"
+}

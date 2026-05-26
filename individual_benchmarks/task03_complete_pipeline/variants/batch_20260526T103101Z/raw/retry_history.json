@@ -1,0 +1,4 @@
+{
+  "retry_mentions_in_log": 1,
+  "method": "regex_count"
+}

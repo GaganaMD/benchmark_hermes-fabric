@@ -1,0 +1,27 @@
+1. **Plan**
+- Inspect `src/parser.py` to locate `parse_frame()` and determine supported input types.
+- Add a minimal guard clause at function entry to raise `ValueError` with message containing `"empty input"` when payload is empty.
+- Update `tests/test_parser.py` with a focused regression test asserting `ValueError` and message match for empty input.
+- Run parser tests (and full test command if needed) to verify no behavior regressions.
+
+2. **Patch**
+I’m missing repository file contents in this environment, so I can’t safely produce an accurate unified diff without seeing the current `parse_frame()` implementation and existing tests.
+
+Please provide:
+- `src/parser.py` (or at least `parse_frame()`),
+- `tests/test_parser.py` (relevant sections),
+
+and I’ll return a minimal exact patch immediately in unified diff format.
+
+3. **Rationale**
+To satisfy your “minimal, focused edits” and “preserve non-empty behavior” constraints, I need to patch against the real code shape (input types, existing validation order, and test conventions). Guessing would risk unrelated behavior changes or brittle tests.
+
+4. **Validation**
+Once patched, run:
+- `pytest -x tests/test_parser.py`
+- (optionally) `pytest -x` for full regression confidence
+
+Expected outcomes:
+- New test fails before patch and passes after.
+- `parse_frame()` raises `ValueError` on empty payload with message containing `"empty input"`.
+- Existing non-empty valid parsing tests remain green.

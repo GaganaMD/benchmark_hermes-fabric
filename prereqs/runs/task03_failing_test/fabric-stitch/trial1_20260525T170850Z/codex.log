@@ -1,0 +1,16 @@
++ cd fixtures/task03_failing_test
++ codex exec --full-auto '1. **Plan**
+   1. Inspect parser implementation and parser tests to infer expected empty-input behavior.
+   2. Identify minimal in-scope code change in parser entrypoint.
+   3. Apply a localized patch with explicit empty-input handling.
+   4. Run targeted and broader verification commands.
+   5. Report DONE WHEN status against requested test behavior and constraints.
+
+I don’t yet have repository file contents or an explicit FILES IN SCOPE list beyond the test target path. To proceed safely under your rules (“Touch only files in FILES IN SCOPE”), I need either:
+
+- the relevant parser file path(s), or
+- permission to inspect the repo tree and open files to infer scope.
+
+Once you confirm, I’ll execute the exact process and provide the required six sections plus verification results.'
+warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
+Reading additional input from stdin...

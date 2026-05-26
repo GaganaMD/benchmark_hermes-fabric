@@ -1,0 +1,5 @@
+{
+  "wall_clock_ms": 90000,
+  "inferred_from": "run.json or timeout wrapper",
+  "timeout_cap_ms": 90000
+}

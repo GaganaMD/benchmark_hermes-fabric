@@ -1,0 +1,2 @@
++ cd fixtures/task09_flaky_workers
++ hermes -z 'the background workers are flaky. make them more reliable.' chat

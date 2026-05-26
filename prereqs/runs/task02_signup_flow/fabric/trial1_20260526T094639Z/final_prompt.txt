@@ -1,0 +1,33 @@
+ANSWER:
+When a new user signs up, the data typically flows through those three layers like this:
+
+1. `api/handlers.py` (request/response layer)
+- Receives the signup HTTP request (usually JSON with fields like email, password, name).
+- Parses and validates basic request shape (required fields, formats).
+- Calls a function in `services/user.py` with the cleaned input.
+- Converts service results into an HTTP response (e.g., `201 Created` on success, `400/409` on validation/conflict).
+
+2. `services/user.py` (business logic layer)
+- Applies signup rules (e.g., email uniqueness check, password policy).
+- Hashes the password (never sends plaintext to DB layer if designed correctly).
+- Builds a user domain object or data dict for persistence.
+- Calls `db/repo.py` to read/write user records.
+- Handles transaction/business outcomes (e.g., user already exists) and returns a structured result back to handler.
+
+3. `db/repo.py` (data access layer)
+- Executes database queries (e.g., `SELECT` to check existing email, `INSERT` to create user).
+- Maps DB rows/results to Python objects/dicts expected by service layer.
+- Returns created user record (often including generated ID, timestamps).
+
+End-to-end sequence (common pattern):
+- Client → `api/handlers.py`: `POST /signup` with user payload
+- Handler → Service: `create_user(payload)`
+- Service → Repo: `get_user_by_email(email)` (optional pre-check)
+- Repo → Service: existing user or none
+- Service: hash password, prepare user
+- Service → Repo: `insert_user(user_data)`
+- Repo → Service: inserted row/id
+- Service → Handler: success result/user DTO
+- Handler → Client: HTTP success response with safe fields (no password hash)
+
+So, `api/handlers.py` handles transport concerns, `services/user.py` enforces business rules, and `db/repo.py` performs persistence.

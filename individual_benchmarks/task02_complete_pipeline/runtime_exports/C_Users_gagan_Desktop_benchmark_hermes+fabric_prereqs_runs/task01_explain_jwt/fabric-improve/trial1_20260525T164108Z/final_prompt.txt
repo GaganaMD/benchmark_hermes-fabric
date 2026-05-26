@@ -1,0 +1,14 @@
+1. I’ll first check whether `auth/jwt.py` is available in this environment so I can base the explanation strictly on that file.
+2. If present, I’ll read it and then provide the requested implementation-focused walkthrough with sections and examples.
+3. If not present, I’ll ask you for the exact file contents and give a concise checklist of what to share.
+
+I can’t access `auth/jwt.py` from the current context yet.  
+Please paste the contents of `auth/jwt.py` (or share the relevant excerpt), and I’ll walk through it exactly as requested.
+
+### Checklist of what to share
+- Full `auth/jwt.py` file contents (preferred), including:
+  - imports
+  - constants/settings reads
+  - token create/verify/refresh functions
+  - exception handlers
+- If `auth/jwt.py` references helpers in other files for critical logic (e.g., key loading, blacklist checks), include just those called snippets too, and I will mark them as external dependencies.

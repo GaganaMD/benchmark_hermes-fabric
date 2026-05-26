@@ -1,0 +1,10 @@
+{
+  "variant": "fabric-stitch",
+  "trial": "trial1_20260526T095303Z",
+  "batch_ts": "20260526T094832Z",
+  "total_ms": 90000,
+  "rc": 124,
+  "status": "timeout",
+  "codex_log_size_bytes": null,
+  "final_prompt_size_bytes": null
+}

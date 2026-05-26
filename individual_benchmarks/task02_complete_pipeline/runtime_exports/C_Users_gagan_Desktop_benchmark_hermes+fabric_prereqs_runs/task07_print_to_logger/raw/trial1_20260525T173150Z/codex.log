@@ -1,0 +1,4 @@
++ cd fixtures/task07_print_to_logger
++ codex exec --full-auto 'replace all `print(...)` calls in `src/` with `logger.info(...)` and add the logger import where missing. don'\''t touch `scripts/`.'
+warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
+Reading additional input from stdin...

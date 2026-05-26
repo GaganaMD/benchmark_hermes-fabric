@@ -1,0 +1,4 @@
++ cd fixtures/task02_signup_flow
++ codex exec --full-auto 'explain the data flow from `api/handlers.py` through `services/user.py` into `db/repo.py` when a new user signs up.'
+warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
+Reading additional input from stdin...

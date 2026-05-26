@@ -1,0 +1,8 @@
+{
+  "task_id": "task08_config_migration",
+  "variant": "hermes-fabric",
+  "trial": 1,
+  "ts": "20260525T174443Z",
+  "total_ms": 67291,
+  "tests_exit_code": "0"
+}

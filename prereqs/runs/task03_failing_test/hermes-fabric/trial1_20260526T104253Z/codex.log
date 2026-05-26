@@ -1,0 +1,23 @@
+Done. I proceeded with the fix and verification.
+
+1) Implementation file backing `test_parser.py::test_handles_empty`
+- `C:\Users\gagan\Desktop\benchmark_hermes+fabric\prereqs\fixtures\task03_failing_test\src\parser.py`
+- Confirmed from import in test: `from src.parser import parse_frame`
+
+2) Minimal fix applied (tests untouched)
+- File edited: `...\src\parser.py`
+- Change: added an empty-input guard in `parse_frame`:
+  - `if not data: return None`
+- No other behavioral changes.
+
+3) Verification run
+- Command: `pytest -x`
+- Result: `2 passed`
+- Specific target test `tests/test_parser.py::test_handles_empty` passed (as part of full run).
+
+4) Done condition status
+- ✅ Identified implementation file
+- ✅ Applied minimal implementation-only fix
+- ✅ Ran `pytest -x`
+- ✅ Confirmed target test passes
+- Overall: DONE

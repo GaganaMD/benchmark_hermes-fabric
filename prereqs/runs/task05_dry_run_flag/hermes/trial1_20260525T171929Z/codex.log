@@ -1,0 +1,24 @@
++ cd fixtures/task05_dry_run_flag
++ hermes -z 'add a `--dry-run` flag to the CLI in `src/cli.py` that prevents any file writes. add a test in `tests/test_cli.py`.' chat
+Implemented and verified.
+
+Changes made:
+
+1) Updated CLI with a global `--dry-run` flag in `src/cli.py`
+- Added `--dry-run` option on the top-level click group.
+- Stored the flag in `ctx.obj["dry_run"]`.
+- Updated both commands to respect it:
+  - `write`: skips `Path(name).write_text(...)` and prints `dry-run: would write ...`
+  - `rename`: skips `src.rename(dst)` and prints `dry-run: would rename ...`
+
+2) Added test in `tests/test_cli.py`
+- New test: `test_dry_run_write_does_not_create_file`
+  - Invokes: `--dry-run write out.txt --content hi`
+  - Asserts:
+    - exit code is 0
+    - output contains `dry-run: would write out.txt`
+    - `out.txt` was not created
+
+Validation:
+- Ran test suite: `pytest -q`
+- Result: `2 passed`

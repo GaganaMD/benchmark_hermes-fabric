@@ -1,0 +1,12 @@
+{
+  "variant": "hermes-fabric",
+  "batch_ts": "20260526T103101Z",
+  "rc_trace": 0,
+  "runtime_ms": 40629,
+  "runtime_seconds": 40.629,
+  "codex_log_size_bytes": 850,
+  "stdout_size_bytes": 89,
+  "stderr_size_bytes": 106,
+  "timeout": false,
+  "inferred": false
+}

@@ -1,0 +1,32 @@
+ANSWER:
+When a new user signs up, the flow typically moves through three layers with clear responsibility boundaries:
+
+1. **`api/handlers.py` (request/response layer)**
+   - Receives the signup HTTP request (e.g., JSON with email/password/name).
+   - Parses and validates request shape/basic constraints (required fields, format checks).
+   - Calls into the service layer (likely something like `services.user.create_user(...)`).
+   - Translates service results/exceptions into HTTP responses (e.g., `201 Created`, `400 Bad Request`, `409 Conflict`).
+
+2. **`services/user.py` (business logic layer)**
+   - Implements signup rules:
+     - normalize inputs (email lowercasing, trimming),
+     - enforce domain rules (password policy, unique email requirement),
+     - hash password before persistence,
+     - maybe trigger side effects (welcome email, audit event).
+   - Coordinates with `db/repo.py` for data access:
+     - checks whether user exists,
+     - builds a user entity/model,
+     - requests insert/save.
+   - Returns either a domain object/DTO for the handler or raises domain-specific errors (e.g., `UserAlreadyExists`).
+
+3. **`db/repo.py` (persistence layer)**
+   - Performs actual database interactions:
+     - query for existing user by email,
+     - insert the new user row/document,
+     - commit transaction / return created record with generated ID.
+   - Maps DB errors (unique constraint violations, connection issues) into repository-level exceptions or structured results consumed by the service.
+
+**End-to-end data flow (condensed):**  
+`HTTP signup request -> api/handlers.py parses/validates -> services/user.py applies business rules + hashes password -> db/repo.py checks/inserts in DB -> services/user.py returns safe user data -> api/handlers.py sends HTTP response`
+
+If you share the actual code from those files, I can trace the exact function calls, objects, and error paths line by line.

@@ -1,0 +1,14 @@
+1. Plan
+1. Inspect `src/parser.py` and `tests/test_parser.py` to understand current `parse_frame()` behavior and test patterns.
+2. Add a minimal input validation guard at the start of `parse_frame()` that raises `ValueError` with a clear message for empty input.
+3. Add a focused test in `tests/test_parser.py` asserting `ValueError` and message for empty input.
+4. Run targeted tests first, then full test suite, and report DONE WHEN status.
+
+I can’t apply the patch or run verification yet because I don’t have access to the repository contents in this interface. Please provide the current contents of:
+
+- `src/parser.py`
+- `tests/test_parser.py`
+
+and I’ll return:
+- the exact minimal unified diff for both files, and
+- the exact test commands (targeted + full suite), with DONE WHEN pass/fail status.

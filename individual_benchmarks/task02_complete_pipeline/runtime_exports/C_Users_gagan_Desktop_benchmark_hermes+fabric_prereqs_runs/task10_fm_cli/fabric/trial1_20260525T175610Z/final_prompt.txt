@@ -1,0 +1,326 @@
+# Product Requirements Document (PRD)
+## Project: File Management CLI (`tools/fm/`)
+
+---
+
+## 1. Overview
+
+### 1.1 Product Summary
+Build a small Python-based command-line interface (CLI) tool in `tools/fm/` for local file management with support for:
+
+- Listing files
+- Moving files
+- Tagging files
+- Searching files by tag
+
+The tool will use:
+
+- **Python** as implementation language
+- **Click** for CLI command structure
+- **SQLite** for tag metadata storage
+- **pytest** for automated testing
+
+Tag metadata must be stored in a **SQLite database colocated with the managed root directory**.
+
+### 1.2 Problem Statement
+Users managing local files often need lightweight, script-friendly tools to apply metadata (tags) and quickly retrieve files by category without introducing heavy external dependencies or cloud services.
+
+### 1.3 Scope
+**In scope (MVP):**
+- Single-root file management operations
+- File tag persistence in local SQLite DB under managed root
+- Core commands: `list`, `move`, `tag`, `search-by-tag`
+- Unit/integration tests with pytest
+
+**Out of scope (initial release):**
+- Nested tag hierarchies
+- Multi-root indexing in one DB
+- Full-text file content search
+- GUI/TUI
+- Remote storage providers
+
+---
+
+## 2. Objectives
+
+### 2.1 Business Objectives
+- Provide a fast-to-adopt internal utility for local file organization.
+- Reduce manual effort in finding categorized files.
+- Establish a testable baseline CLI architecture for future extensions.
+
+### 2.2 Product Objectives
+- Offer intuitive commands with consistent UX.
+- Ensure file-tag mappings remain accurate through file moves.
+- Keep metadata portable by colocating DB with managed root.
+
+### 2.3 Technical Objectives
+- Implement deterministic, testable command behavior.
+- Ensure SQLite schema supports efficient tag lookups.
+- Provide robust error handling for missing files and invalid paths.
+
+---
+
+## 3. Target Audience
+
+### Primary Users
+- Developers
+- Technical operators
+- Power users managing local project files
+
+### User Characteristics
+- Comfortable with terminal workflows
+- Need quick metadata-based retrieval
+- Prefer lightweight tools with no external service dependencies
+
+---
+
+## 4. Assumptions & Constraints
+
+### Assumptions
+- Users provide a valid managed root path.
+- Files are on a local filesystem accessible to the process.
+- Python runtime environment is available.
+
+### Constraints
+- Must be implemented under `tools/fm/`.
+- Must use Click and pytest.
+- SQLite DB location must be under managed root (e.g., `<root>/.fm_tags.db`).
+- Operations should work cross-platform where feasible (Linux/macOS/Windows path handling).
+
+---
+
+## 5. User Stories
+
+1. **List files**
+   - As a user, I want to list files under a managed root so I can inspect current contents.
+
+2. **Move file**
+   - As a user, I want to move a file within the managed root so I can reorganize folders.
+   - As a user, I want associated tags preserved after move.
+
+3. **Tag file**
+   - As a user, I want to assign one or more tags to a file so I can classify it.
+
+4. **Search by tag**
+   - As a user, I want to find files by tag so I can quickly locate relevant files.
+
+5. **Error clarity**
+   - As a user, I want clear error messages when paths/tags are invalid so I can fix issues quickly.
+
+---
+
+## 6. Features & Prioritization
+
+### 6.1 MVP Features (P0)
+- `list` command
+- `move` command
+- `tag` command
+- `search-by-tag` command
+- SQLite initialization and schema migration-on-first-run
+- Basic test suite with pytest
+
+### 6.2 Post-MVP (P1/P2)
+- Tag removal command
+- AND/OR tag query semantics
+- Output formats (`json`, `table`)
+- Recursive depth controls and ignore patterns
+
+---
+
+## 7. Functional Requirements
+
+### 7.1 CLI Structure
+- The CLI entrypoint shall be under `tools/fm/` (e.g., `tools/fm/cli.py`).
+- The CLI shall expose commands:
+  - `list`
+  - `move`
+  - `tag`
+  - `search-by-tag`
+- The CLI shall accept a `--root` option (or equivalent config mechanism) to identify managed root.
+
+### 7.2 Database Initialization
+- On first metadata operation, system shall create SQLite DB at `<managed_root>/.fm_tags.db` (configurable filename optional).
+- System shall create required tables if absent.
+
+**Proposed schema (MVP):**
+
+| Table | Columns | Notes |
+|---|---|---|
+| `files` | `id INTEGER PK`, `path TEXT UNIQUE NOT NULL`, `created_at`, `updated_at` | path stored relative to root |
+| `tags` | `id INTEGER PK`, `name TEXT UNIQUE NOT NULL` | normalized lowercase optional |
+| `file_tags` | `file_id INTEGER`, `tag_id INTEGER`, `PRIMARY KEY(file_id, tag_id)` | many-to-many |
+
+### 7.3 `list` Command
+- Shall list files under root (recursive by default for MVP unless specified otherwise).
+- Shall display paths relative to root.
+- Shall optionally include tags per file (`--with-tags`, optional for MVP).
+- Shall return non-zero exit code on invalid root.
+
+### 7.4 `move` Command
+- Input: source path, destination path (relative or absolute under root).
+- Shall validate that source exists and is a file.
+- Shall prevent moves outside managed root.
+- On success, shall update file path reference in DB if file is tagged.
+- Shall preserve tags associated with moved file.
+- Shall return non-zero exit code on failure and print actionable message.
+
+### 7.5 `tag` Command
+- Input: file path + one or more tags.
+- Shall validate target file exists under managed root.
+- Shall create missing tag records.
+- Shall create/update file record and associate tag(s) idempotently.
+- Re-running with same tag shall not create duplicates.
+- Optional normalization: trim whitespace; lowercase tags (recommended, must be documented).
+
+### 7.6 `search-by-tag` Command
+- Input: one tag (MVP exact match).
+- Shall return all file paths associated with that tag.
+- Shall only return existing files; if stale DB record detected, behavior must be defined:
+  - MVP recommendation: show warning and optionally skip stale entries.
+- Shall return empty result with exit code 0 when no matches found.
+
+### 7.7 Path Handling
+- System shall store canonical relative paths (POSIX-like normalized string).
+- System shall resolve symlinks/relative path traversal safely to prevent escaping root.
+- System shall handle spaces and unicode filenames.
+
+---
+
+## 8. Non-Functional Requirements
+
+### 8.1 Reliability
+- Commands should fail safely with no partial DB corruption.
+- Use SQLite transactions for metadata updates (`tag`, `move` DB update).
+
+### 8.2 Performance
+- For directory trees up to ~10k files, `list` should complete in acceptable local CLI time (target: <2s typical SSD environment, non-binding).
+- Tag lookup should use indexed joins (`tags.name`, `file_tags` composite key).
+
+### 8.3 Maintainability
+- Code organized into modules (CLI layer, filesystem ops, DB/repository layer).
+- Clear docstrings and type hints for core functions.
+
+### 8.4 Testability
+- pytest coverage for happy path + error cases.
+- Use temporary directories/fixtures for filesystem isolation.
+
+### 8.5 Usability
+- Help text for all commands/options via Click.
+- Consistent output formatting and exit codes.
+- Clear, actionable error messages.
+
+---
+
+## 9. CLI UX Specification (Draft)
+
+| Command | Example | Expected Behavior |
+|---|---|---|
+| List | `fm --root /data list` | Prints relative file paths |
+| Move | `fm --root /data move docs/a.txt archive/a.txt` | Moves file, updates DB path |
+| Tag | `fm --root /data tag archive/a.txt finance q1` | Associates tags with file |
+| Search | `fm --root /data search-by-tag finance` | Prints all files tagged `finance` |
+
+**Output placeholders (MVP):**
+- Success: plain text lines
+- Errors: prefixed with `Error:` to stderr
+- No results: print nothing or explicit `No matches found` (choose one and test for it)
+
+---
+
+## 10. Data & Storage Requirements
+
+- SQLite file location: `<root>/.fm_tags.db`
+- DB file permissions should follow OS defaults (document security caveat).
+- Paths in DB must be stored relative to root to preserve portability if root moves.
+- Optional metadata timestamps in UTC ISO format.
+
+---
+
+## 11. Testing Requirements (pytest)
+
+### 11.1 Minimum Test Matrix
+- `list`
+  - Lists files recursively
+  - Handles empty directory
+  - Invalid root errors
+- `move`
+  - Successful move updates filesystem
+  - Tagged file move preserves tag lookup
+  - Reject move outside root
+  - Source missing error
+- `tag`
+  - Tag single file
+  - Tag with multiple tags
+  - Idempotent duplicate tag assignment
+  - Non-existent file error
+- `search-by-tag`
+  - Returns expected matches
+  - No matches behavior
+  - Handles unknown tag gracefully
+
+### 11.2 Tooling
+- `pytest`
+- `click.testing.CliRunner` for CLI-level tests
+- `tmp_path` fixtures for isolated FS/DB tests
+
+---
+
+## 12. Success Metrics
+
+### 12.1 Delivery Metrics
+- MVP commands implemented and documented.
+- All required tests passing in CI/local run.
+
+### 12.2 Quality Metrics
+- ≥90% coverage on core modules (stretch target; placeholder if no org standard).
+- Zero critical defects in command behavior for defined MVP scope.
+
+### 12.3 Usability Metrics
+- A new user can run `--help` and execute each command successfully without code reading.
+- Error messages identify issue + next corrective action.
+
+---
+
+## 13. Timeline (Proposed)
+
+| Phase | Duration | Deliverables |
+|---|---|---|
+| Design & Setup | 0.5–1 day | Project skeleton in `tools/fm/`, dependency setup |
+| Core Implementation | 1–2 days | `list`, `move`, `tag`, `search-by-tag`, DB schema/init |
+| Testing | 1 day | pytest suite for core flows and edge cases |
+| Polish & Docs | 0.5 day | CLI help text, README usage examples |
+
+**Total estimate:** ~3–4.5 days (small utility scope)
+
+---
+
+## 14. Risks & Mitigations
+
+| Risk | Impact | Mitigation |
+|---|---|---|
+| Path traversal / root escape | Security + data integrity | Canonicalize and enforce root-bound paths |
+| Stale DB entries after external FS changes | Incorrect search results | Validate existence during search/list-with-tags and warn |
+| Cross-platform path inconsistencies | Bugs on Windows/macOS | Use `pathlib`, normalization tests on separators |
+| Ambiguous tag case sensitivity | UX inconsistency | Define normalization policy (e.g., lowercase) and document |
+
+---
+
+## 15. Open Questions
+
+1. Should `list` include directories or files only? (PRD assumes files only)
+2. Should `search-by-tag` support multiple tags in MVP?
+3. Preferred no-results behavior: silent vs explicit message?
+4. Should tag names be case-insensitive by default?
+5. Should there be a global config/env var for default `--root`?
+
+---
+
+## 16. MVP Acceptance Criteria
+
+- [ ] CLI exists under `tools/fm/` with Click commands: `list`, `move`, `tag`, `search-by-tag`
+- [ ] SQLite DB created under managed root and used for tag metadata
+- [ ] `move` updates tagged file paths in DB correctly
+- [ ] `tag` is idempotent and supports multiple tags per file
+- [ ] `search-by-tag` returns correct file paths for exact tag match
+- [ ] pytest suite covers core functionality and major error cases
+- [ ] Command help and basic usage documentation included

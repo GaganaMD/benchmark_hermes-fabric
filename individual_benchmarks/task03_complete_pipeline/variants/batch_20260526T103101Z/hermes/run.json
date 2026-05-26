@@ -1,0 +1,10 @@
+{
+  "task_id": "task03_failing_test",
+  "variant": "hermes",
+  "trial": 1,
+  "ts": "20260526T103101Z",
+  "total_ms": 300000,
+  "tests_exit_code": "na",
+  "status": "timeout_inferred",
+  "inference_note": "missing native run.json; inferred from orchestration trace"
+}

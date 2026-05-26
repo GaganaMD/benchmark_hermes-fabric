@@ -1,0 +1,8 @@
+{
+  "task_id": "task03_failing_test",
+  "variant": "fabric",
+  "trial": 1,
+  "ts": "20260526T103237Z",
+  "total_ms": 48042,
+  "tests_exit_code": "0"
+}

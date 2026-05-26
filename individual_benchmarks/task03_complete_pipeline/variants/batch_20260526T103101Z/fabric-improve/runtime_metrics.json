@@ -1,0 +1,12 @@
+{
+  "variant": "fabric-improve",
+  "batch_ts": "20260526T103101Z",
+  "rc_trace": 0,
+  "runtime_ms": 58749,
+  "runtime_seconds": 58.749,
+  "codex_log_size_bytes": 9162,
+  "stdout_size_bytes": 90,
+  "stderr_size_bytes": 106,
+  "timeout": false,
+  "inferred": false
+}

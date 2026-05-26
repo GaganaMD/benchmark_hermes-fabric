@@ -1,0 +1,36 @@
++ cd fixtures/task10_fm_cli
++ hermes -z 'build a small file-management cli in `tools/fm/` with: list, move, tag, search-by-tag. python, click, pytest. tags stored in a sqlite db colocated with the managed root.' chat
+Implemented and verified.
+
+Created:
+- C:\Users\gagan\Desktop\benchmark_hermes+fabric\prereqs\fixtures\task10_fm_cli\tools\fm\fm_cli.py
+- C:\Users\gagan\Desktop\benchmark_hermes+fabric\prereqs\fixtures\task10_fm_cli\tools\fm\test_fm_cli.py
+
+What’s included:
+- list
+- move
+- tag
+- search-by-tag
+
+Design details:
+- Python + Click CLI
+- Tags stored in SQLite DB colocated with managed root:
+  - <managed_root>\.fm_tags.db
+- Paths are constrained to stay under the managed root.
+- Moving a file updates tag index paths in DB.
+
+Verified:
+- Ran pytest in tools/fm
+- Result: 3 passed
+
+Quick usage:
+- python fm_cli.py list --root /path/to/root
+- python fm_cli.py tag --root /path/to/root some/file.txt invoice
+- python fm_cli.py search-by-tag --root /path/to/root invoice
+- python fm_cli.py move --root /path/to/root some/file.txt archived/file.txt
+
+If you want, I can add:
+- tag removal
+- list-by-tag
+- recursive/non-recursive list flags
+- packaging entrypoint (so command can be run as `fm ...` directly).

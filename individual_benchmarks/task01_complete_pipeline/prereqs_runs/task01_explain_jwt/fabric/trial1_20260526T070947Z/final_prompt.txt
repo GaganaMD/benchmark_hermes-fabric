@@ -1,0 +1,39 @@
+ANSWER:
+I don’t have the actual `auth/jwt.py` file in your input, so I can’t describe its exact logic line-by-line yet.  
+If you paste the file, I can walk through it precisely.
+
+In most codebases, `auth/jwt.py` token validation/refresh flow usually works like this:
+
+- **Validation path**
+  - Extract token from `Authorization: Bearer <token>` header (or cookie).
+  - Decode JWT with a secret/public key and expected algorithm(s).
+  - Verify standard claims:
+    - `exp` (not expired)
+    - `nbf` (not before now)
+    - `iat` (issued-at sanity)
+    - `iss` (expected issuer)
+    - `aud` (expected audience)
+    - `sub` (user/session identity)
+  - Optionally check custom claims/scopes/roles.
+  - Optionally check revocation state (`jti` in denylist, token version mismatch, session invalidated).
+  - Return authenticated principal/context or raise auth errors.
+
+- **Refresh path**
+  - Accept refresh token (usually separate from access token, longer TTL).
+  - Validate refresh token with stricter checks:
+    - correct `type` claim (e.g., `refresh`)
+    - not expired/revoked/rotated
+    - linked user/session still active
+  - Issue new short-lived access token (and sometimes a new refresh token).
+  - If refresh rotation is enabled:
+    - mark old refresh token as used/revoked
+    - persist new refresh token ID/hash
+  - Return new token pair to client.
+
+- **Typical failure cases handled**
+  - Signature invalid → reject.
+  - Expired access token → reject and require refresh flow.
+  - Expired/invalid refresh token → force re-login.
+  - Reused rotated refresh token → revoke session family and force re-auth.
+
+Share the actual `auth/jwt.py`, and I’ll map each function/class to this flow and explain exactly how your implementation does it.

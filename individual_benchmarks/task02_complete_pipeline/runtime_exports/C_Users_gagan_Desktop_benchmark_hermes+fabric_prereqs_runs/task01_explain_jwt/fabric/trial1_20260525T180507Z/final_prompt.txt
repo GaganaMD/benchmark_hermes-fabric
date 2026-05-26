@@ -1,0 +1,10 @@
+ANSWER:
+I don’t have the contents of `auth/jwt.py` in your message, so I can’t walk through its exact logic yet.
+
+Please paste the file (or key functions), and I’ll break it down step by step—specifically how it:
+
+- validates incoming access tokens,
+- handles signature/expiry/claims checks,
+- decides when refresh is allowed,
+- issues new access tokens (and possibly refresh rotation),
+- and handles failure cases.

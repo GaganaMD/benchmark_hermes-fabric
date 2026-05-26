@@ -1,0 +1,95 @@
+{
+  "task_id": "task01_explain_jwt",
+  "run_scope": "task1_only",
+  "output_root": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\individual_benchmarks\\task01_complete_pipeline",
+  "variants_executed": [
+    "fabric",
+    "fabric-improve",
+    "fabric-stitch",
+    "hermes",
+    "hermes-fabric",
+    "raw"
+  ],
+  "variant_runs": [
+    {
+      "variant": "fabric",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\individual_benchmarks\\task01_complete_pipeline\\prereqs_runs\\task01_explain_jwt\\fabric\\trial1_20260526T070947Z",
+      "ts": "20260526T070947Z",
+      "total_ms": 45560,
+      "tests_exit_code": "na",
+      "rc": 0
+    },
+    {
+      "variant": "fabric-improve",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\individual_benchmarks\\task01_complete_pipeline\\prereqs_runs\\task01_explain_jwt\\fabric-improve\\trial1_20260526T071048Z",
+      "ts": "20260526T071048Z",
+      "total_ms": 68037,
+      "tests_exit_code": "na",
+      "rc": 0
+    },
+    {
+      "variant": "fabric-stitch",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\individual_benchmarks\\task01_complete_pipeline\\prereqs_runs\\task01_explain_jwt\\fabric-stitch\\trial1_20260526T071451Z",
+      "ts": "20260526T071451Z",
+      "total_ms": 60381,
+      "tests_exit_code": "na",
+      "rc": 0
+    },
+    {
+      "variant": "hermes",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\individual_benchmarks\\task01_complete_pipeline\\prereqs_runs\\task01_explain_jwt\\hermes\\trial1_20260526T071423Z",
+      "ts": "20260526T071423Z",
+      "total_ms": 27333,
+      "tests_exit_code": "na",
+      "rc": 0
+    },
+    {
+      "variant": "hermes-fabric",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\individual_benchmarks\\task01_complete_pipeline\\prereqs_runs\\task01_explain_jwt\\hermes-fabric\\trial1_20260526T071702Z",
+      "ts": "20260526T071702Z",
+      "total_ms": 31886,
+      "tests_exit_code": "na",
+      "rc": 0
+    },
+    {
+      "variant": "raw",
+      "trial_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\individual_benchmarks\\task01_complete_pipeline\\prereqs_runs\\task01_explain_jwt\\raw\\trial1_20260526T070857Z",
+      "ts": "20260526T070857Z",
+      "total_ms": 43364,
+      "tests_exit_code": "na",
+      "rc": 0
+    }
+  ],
+  "generated_at_utc": "2026-05-26T07:19:17.512067+00:00",
+  "runtime_export_roots": [
+    {
+      "root": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\prereqs\\runs",
+      "status": "exported",
+      "files_copied": 72
+    },
+    {
+      "root": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\.hermes\\sessions",
+      "status": "missing"
+    },
+    {
+      "root": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\bridge\\out\\logs",
+      "status": "exported",
+      "files_copied": 0
+    },
+    {
+      "root": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\temp",
+      "status": "missing"
+    },
+    {
+      "root": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\runtime",
+      "status": "missing"
+    },
+    {
+      "root": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\cache",
+      "status": "missing"
+    }
+  ],
+  "notes": [
+    "optional-ablation direct codex path was blocked by environment policy; existing run_task-defined variants executed"
+  ]
+}

@@ -1,0 +1,16 @@
+--- raw_prompt.txt
++++ final_codex_prompt.txt
+@@ -1 +1,12 @@
+-`tests/test_parser.py::test_handles_empty` is failing. fix it. don't change the test.
++1. Plan
++   1. Reproduce the failing test exactly with `pytest tests/test_parser.py::test_handles_empty -q` and inspect traceback.
++   2. Inspect parser production code path for empty input handling.
++   3. Apply a minimal, localized fix in production code only (no test edits).
++   4. Run required verifications:
++      - `pytest tests/test_parser.py::test_handles_empty -q`
++      - `pytest tests/test_parser.py -q`
++      - `pytest -q`
++   5. Report status against done criteria.
++
++I can’t execute edits or run pytest yet because I don’t have the repository files/command environment in this chat.  
++Please provide the relevant parser file(s) (or enable workspace access), and I will apply the patch exactly as requested and return the full implementation report with traceback, diff, and validation results.

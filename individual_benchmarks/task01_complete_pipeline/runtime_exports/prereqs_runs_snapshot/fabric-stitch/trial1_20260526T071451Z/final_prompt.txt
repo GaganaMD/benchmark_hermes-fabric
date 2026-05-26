@@ -1,0 +1,13 @@
+1. Plan
+   1. Inspect repository files to identify `auth/jwt.py` and any related artifacts in scope.
+   2. Extract JWT validation and refresh logic directly from code with evidence references.
+   3. Draft the requested markdown with required top-level sections and explicit unknowns where artifacts are missing.
+   4. Run verification command(s) and report DONE WHEN status.
+
+I can’t proceed with code edits because this task is documentation generation, but I still need to inspect the actual source artifacts. Right now, the required baseline PRD template is also missing (the prompt includes a placeholder: `"[PASTE THE USER'S PRD TEMPLATE HERE VERBATIM AS THE SCHEMA TO FILL, preserving section numbering and intent]"`).
+
+Please provide:
+- The repository files (or at minimum `auth/jwt.py` and related auth/config/error/test files), and
+- The actual PRD template text to preserve numbered structure.
+
+Once provided, I’ll produce the code-accurate PRD exactly in the required format with evidence citations and explicit unknowns.

@@ -1,0 +1,74 @@
++ cd fixtures/task01_explain_jwt
++ hermes -z 'walk me through how `auth/jwt.py` validates and refreshes access tokens.' chat
+Here’s exactly how auth/jwt.py handles validation and refresh, step by step.
+
+1) Token structure and lifetimes
+
+- SECRET = "dev-secret-change-me"
+- ALGO = "HS256"
+- ACCESS_TTL = 900 (15 min)
+- REFRESH_TTL = 7 days
+
+issue(sub) creates two JWTs:
+
+- access token payload:
+  - sub (user id)
+  - iat (issued-at)
+  - exp (now + 15m)
+  - no typ field
+- refresh token payload:
+  - sub
+  - iat
+  - exp (now + 7d)
+  - typ = "refresh"
+
+So this module distinguishes refresh tokens using typ="refresh".
+
+2) How validate(token) works (access-token validation)
+
+Code path:
+
+- Calls pyjwt.decode(token, SECRET, algorithms=[ALGO])
+  - verifies signature with SECRET
+  - verifies exp automatically
+- If expired: ExpiredSignatureError -> returns None
+- If malformed/invalid signature/etc: InvalidTokenError -> returns None
+- After decode, extra guard:
+  - if claims.get("typ") == "refresh": return None
+  - this prevents using refresh tokens as bearer access tokens
+- Otherwise returns claims dict
+
+Net effect:
+- Valid access token => claims
+- Expired/forged/bad token => None
+- Refresh token presented as access => None
+
+3) How refresh(refresh_token) works
+
+Code path:
+
+- Calls pyjwt.decode(refresh_token, SECRET, algorithms=[ALGO])
+  - signature + exp checked
+- On any JWT decode failure (including expiry): InvalidTokenError -> None
+- Then enforces token type:
+  - if claims.get("typ") != "refresh": return None
+- If valid refresh token, returns issue(claims["sub"])
+  - mints a brand new access token (15m)
+  - mints a brand new refresh token (7d)
+  - both tied to same sub
+
+Net effect:
+- Only valid, unexpired refresh tokens can rotate into a new pair.
+
+4) Important behavior/implications
+
+- Refresh rotation is stateless:
+  - old refresh tokens are not revoked or tracked
+  - if one is stolen, it can be reused until expiration
+- No jti / token version / denylist
+- SECRET is hardcoded dev secret (not production-safe)
+- No issuer/audience checks (iss/aud)
+
+So functionally it works for a minimal fixture, but it’s intentionally lightweight and not hardened for production.
+
+If you want, I can also diagram the exact request flow (login -> access usage -> 401 on expiry -> refresh -> retry) against this file’s behavior.

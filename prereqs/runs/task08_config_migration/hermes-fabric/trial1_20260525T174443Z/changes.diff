@@ -1,0 +1,91 @@
+diff --git a/src/__pycache__/config.cpython-311.pyc b/src/__pycache__/config.cpython-311.pyc
+index 9472f17..74032f3 100644
+Binary files a/src/__pycache__/config.cpython-311.pyc and b/src/__pycache__/config.cpython-311.pyc differ
+diff --git a/src/config.py b/src/config.py
+index 3601cc9..3b18916 100644
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,38 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-first default and INI fallback."""
+ import configparser
++import warnings
+ from pathlib import Path
++import tomllib
+ 
+-def load_config(path: str = "config.ini") -> dict:
++
++def _load_ini(path: Path) -> dict:
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is not None:
++        config_path = Path(path)
++        if not config_path.exists():
++            raise FileNotFoundError(path)
++        if config_path.suffix.lower() == ".toml":
++            with config_path.open("rb") as f:
++                return tomllib.load(f)
++        return _load_ini(config_path)
++
++    toml_path = Path("config.toml")
++    if toml_path.exists():
++        with toml_path.open("rb") as f:
++            return tomllib.load(f)
++
++    ini_path = Path("config.ini")
++    if ini_path.exists():
++        warnings.warn(
++            "config.ini is deprecated; migrate to config.toml",
++            DeprecationWarning,
++            stacklevel=2,
++        )
++        return _load_ini(ini_path)
++
++    raise FileNotFoundError("config.toml")
+diff --git a/tests/__pycache__/test_config.cpython-311-pytest-8.4.1.pyc b/tests/__pycache__/test_config.cpython-311-pytest-8.4.1.pyc
+index 93e2012..cb83888 100644
+Binary files a/tests/__pycache__/test_config.cpython-311-pytest-8.4.1.pyc and b/tests/__pycache__/test_config.cpython-311-pytest-8.4.1.pyc differ
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353..0cee085 100644
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,10 +1,30 @@
+-from pathlib import Path
+ from src.config import load_config
+ 
+-def test_loads_ini(tmp_path, monkeypatch):
++
++def test_loads_toml_first_when_both_exist(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text('[server]\nhost = "5.6.7.8"\nport = 8080\n', encoding="utf-8")
++
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n", encoding="utf-8")
++
++    monkeypatch.chdir(tmp_path)
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "5.6.7.8"
++    assert cfg["server"]["port"] == 8080
++
++
++def test_falls_back_to_ini_with_deprecation_warning(tmp_path, monkeypatch, recwarn):
+     ini = tmp_path / "config.ini"
+-    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n", encoding="utf-8")
++
+     monkeypatch.chdir(tmp_path)
+     cfg = load_config()
++
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++    warnings_seen = [w for w in recwarn if issubclass(w.category, DeprecationWarning)]
++    assert warnings_seen, "Expected a DeprecationWarning when falling back to config.ini"
++    assert "config.ini is deprecated" in str(warnings_seen[0].message)

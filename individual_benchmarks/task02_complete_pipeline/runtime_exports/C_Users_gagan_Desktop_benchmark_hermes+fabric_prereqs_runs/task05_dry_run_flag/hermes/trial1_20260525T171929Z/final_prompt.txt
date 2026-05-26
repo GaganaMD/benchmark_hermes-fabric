@@ -1,0 +1,1 @@
+add a `--dry-run` flag to the CLI in `src/cli.py` that prevents any file writes. add a test in `tests/test_cli.py`.

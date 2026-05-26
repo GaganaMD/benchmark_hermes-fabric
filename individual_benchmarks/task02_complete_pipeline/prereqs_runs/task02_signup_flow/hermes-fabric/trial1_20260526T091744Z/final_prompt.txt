@@ -1,0 +1,30 @@
+ANSWER:
+When a new user signs up, the data typically flows through those layers like this:
+
+1. **`api/handlers.py` (request handling layer)**
+   - Receives the HTTP signup request (e.g., JSON with email/password/name).
+   - Parses and validates basic input shape (required fields, types, maybe format checks).
+   - Calls a service function in `services/user.py`, passing a structured payload (dict/schema/model).
+   - Converts service results/exceptions into HTTP responses (e.g., `201 Created`, `400 Bad Request`, `409 Conflict`).
+
+2. **`services/user.py` (business logic layer)**
+   - Implements signup rules:
+     - checks whether user already exists,
+     - hashes password,
+     - applies domain constraints/defaults (status, role, timestamps, verification flags, etc.).
+   - Calls persistence methods in `db/repo.py` (e.g., `get_user_by_email`, `create_user`).
+   - Orchestrates multi-step operations (possibly in a transaction) and returns a domain/user object back to handler.
+   - Ensures sensitive fields (like raw password) are never returned upward.
+
+3. **`db/repo.py` (data access layer)**
+   - Executes DB queries/inserts.
+   - Maps service-level data into DB rows/documents.
+   - Persists the new user record (with hashed password, not plaintext).
+   - Returns the stored record (often with generated `id`, created timestamp, etc.) to the service.
+
+4. **Return path back up**
+   - `db/repo.py` returns created user data to `services/user.py`.
+   - `services/user.py` may transform/sanitize it into an output DTO.
+   - `api/handlers.py` serializes it into the HTTP response sent to the client.
+
+In short: **handler receives and validates request → service applies signup business logic → repo performs DB reads/writes → result bubbles back up as sanitized API response**.

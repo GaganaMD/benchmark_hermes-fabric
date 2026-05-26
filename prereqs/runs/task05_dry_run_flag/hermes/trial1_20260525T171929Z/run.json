@@ -1,0 +1,8 @@
+{
+  "task_id": "task05_dry_run_flag",
+  "variant": "hermes",
+  "trial": 1,
+  "ts": "20260525T171929Z",
+  "total_ms": 57729,
+  "tests_exit_code": "0"
+}

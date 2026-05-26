@@ -1,0 +1,8 @@
+ANSWER:
+I don’t have the actual `auth/jwt.py` file content yet, so I can’t walk through its exact logic line-by-line.
+
+Please paste the contents of `auth/jwt.py` (and any related config like token lifetimes, secret/public keys, issuer/audience settings), and I’ll break down exactly:
+
+- how validation is performed (signature, expiry, issuer, audience, token type, revocation checks),
+- how refresh is handled (refresh token verification, rotation, new access token minting),
+- and any edge cases or security implications in your specific implementation.

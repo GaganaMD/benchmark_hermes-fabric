@@ -1,0 +1,12 @@
+{
+  "variant": "fabric",
+  "batch_ts": "20260526T103101Z",
+  "rc_trace": 0,
+  "runtime_ms": 48042,
+  "runtime_seconds": 48.042,
+  "codex_log_size_bytes": 9132,
+  "stdout_size_bytes": 82,
+  "stderr_size_bytes": 106,
+  "timeout": false,
+  "inferred": false
+}

@@ -1,0 +1,8 @@
+{
+  "task_id": "task03_failing_test",
+  "variant": "raw",
+  "trial": 1,
+  "ts": "20260526T103121Z",
+  "total_ms": 65851,
+  "tests_exit_code": "0"
+}

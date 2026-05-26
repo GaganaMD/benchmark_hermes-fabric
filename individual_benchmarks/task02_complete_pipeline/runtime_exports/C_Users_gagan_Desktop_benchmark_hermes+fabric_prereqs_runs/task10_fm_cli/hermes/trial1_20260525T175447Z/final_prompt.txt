@@ -1,0 +1,1 @@
+build a small file-management cli in `tools/fm/` with: list, move, tag, search-by-tag. python, click, pytest. tags stored in a sqlite db colocated with the managed root.

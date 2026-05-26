@@ -1,0 +1,1 @@
+explain the data flow from `api/handlers.py` through `services/user.py` into `db/repo.py` when a new user signs up.

@@ -1,0 +1,92 @@
++ cd fixtures/task01_explain_jwt
++ hermes -z 'ANSWER:
+I don’t have the actual `auth/jwt.py` file content yet, so I can’t walk through its exact logic line-by-line.
+
+Please paste the contents of `auth/jwt.py` (and any related config like token lifetimes, secret/public keys, issuer/audience settings), and I’ll break down exactly:
+
+- how validation is performed (signature, expiry, issuer, audience, token type, revocation checks),
+- how refresh is handled (refresh token verification, rotation, new access token minting),
+- and any edge cases or security implications in your specific implementation.' chat
+Got it — I checked the actual file at:
+C:\Users\gagan\Desktop\benchmark_hermes+fabric\prereqs\fixtures\task01_explain_jwt\auth\jwt.py
+
+Here’s exactly how this implementation works.
+
+What it issues
+
+- Algorithm: HS256 (symmetric HMAC)
+- Secret: hardcoded string dev-secret-change-me
+- Access TTL: 900s (15 min)
+- Refresh TTL: 7 days
+
+issue(sub)
+- Creates two JWTs with same sub and iat:
+  1) access token claims: {sub, iat, exp}
+  2) refresh token claims: {sub, iat, exp, typ: "refresh"}
+- Returns {"access": ..., "refresh": ...}
+
+Validation flow (validate)
+
+validate(token):
+1) Decodes with pyjwt.decode(token, SECRET, algorithms=[ALGO])
+   - This verifies signature and exp by default.
+2) If ExpiredSignatureError or InvalidTokenError -> returns None
+3) Additional type gate:
+   - if claims["typ"] == "refresh" -> reject (None)
+4) Otherwise returns claims (valid access token)
+
+So access token acceptance criteria are:
+- valid HS256 signature with SECRET
+- not expired
+- not explicitly tagged as typ=refresh
+
+Refresh flow (refresh)
+
+refresh(refresh_token):
+1) Decodes with same SECRET/ALGO
+   - catches InvalidTokenError (includes expired/invalid signature/etc)
+2) Requires claims["typ"] == "refresh"
+   - otherwise reject
+3) Calls issue(claims["sub"]) to mint a brand-new access+refresh pair
+
+So this does refresh token rotation in practice (new refresh issued each time), but without server-side invalidation of old refresh tokens.
+
+What is NOT checked
+
+- No issuer (iss) validation
+- No audience (aud) validation
+- No jti / nonce / token ID tracking
+- No revocation list / denylist
+- No session store / refresh family tracking
+- No user-status check (disabled user, password change, etc.)
+- No required-claims enforcement beyond what code reads
+- No key rotation / kid handling (single static secret)
+
+Security implications / edge cases
+
+1) Hardcoded weak/dev secret
+- Biggest risk. If leaked/guessable, attacker can forge both access and refresh tokens.
+
+2) Refresh replay risk
+- Stolen refresh token can be reused until expiry (7 days), because old refresh tokens are not revoked after use.
+
+3) No context binding
+- Tokens are bearer-only; not bound to device/IP/session.
+
+4) Minimal claim model
+- No scopes/roles/permissions in token; authorization must happen elsewhere.
+
+5) Type confusion mostly handled
+- Access endpoint blocks typ=refresh.
+- Refresh endpoint requires typ=refresh.
+- Good basic separation for this fixture.
+
+Bottom line
+
+- This is a clean minimal benchmark implementation.
+- It correctly verifies signature+expiry and separates access vs refresh by typ.
+- For production, the main upgrades are:
+  1) strong externalized secret/key management (+ rotation),
+  2) refresh-token revocation/rotation tracking,
+  3) issuer/audience checks,
+  4) session/user-state validation at refresh time.

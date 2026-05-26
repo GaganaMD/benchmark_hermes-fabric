@@ -1,0 +1,8 @@
+ANSWER:
+I can definitely walk you through it, but I don’t have the actual `auth/jwt.py` contents yet.
+
+Please paste that file (or the relevant functions/classes), and I’ll give you a step-by-step explanation of exactly:
+
+- how access tokens are validated (signature, expiry, claims, error paths),
+- how refresh is handled (refresh token checks, rotation, revocation, new access token issuance),
+- and any edge cases/security implications specific to your implementation.

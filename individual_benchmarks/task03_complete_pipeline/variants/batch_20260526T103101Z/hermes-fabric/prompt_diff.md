@@ -1,0 +1,11 @@
+--- raw_prompt.txt
++++ final_codex_prompt.txt
+@@ -1 +1,7 @@
+-`tests/test_parser.py::test_handles_empty` is failing. fix it. don't change the test.
++1. Identify the implementation file that backs `test_parser.py::test_handles_empty`.
++2. Make a minimal fix in that implementation (without touching tests).
++3. Run verification (`pytest -x`) and confirm the specific test passes.
++4. Report status against the done condition.
++
++I can’t safely apply edits yet because the **FILES IN SCOPE are not explicit**, and your rules require I only touch in-scope files.  
++Please provide the allowed file path(s) (e.g., `src/parser.py`), and I’ll proceed immediately with `apply_patch` and verification.

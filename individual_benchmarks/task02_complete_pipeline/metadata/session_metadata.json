@@ -1,0 +1,8 @@
+{
+  "task_id": "task02_signup_flow",
+  "variant": "hermes-fabric",
+  "run_scope": "task2_only_single_run",
+  "output_root": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\individual_benchmarks\\task02_complete_pipeline",
+  "source_run_dir": "C:\\Users\\gagan\\Desktop\\benchmark_hermes+fabric\\prereqs\\runs\\task02_signup_flow\\hermes-fabric\\trial1_20260526T091744Z",
+  "captured_at_utc": "2026-05-26T09:20:49.128937+00:00"
+}

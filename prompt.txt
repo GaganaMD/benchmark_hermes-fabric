@@ -1,0 +1,463 @@
+/goal Build a research-grade benchmark and ablation framework for Hermes + Fabric + Codex inside this repository.
+
+Repository root:
+C:\Users\gagan\Desktop\benchmark_hermes+fabric
+
+Prerequisites/tasks root:
+C:\Users\gagan\Desktop\benchmark_hermes+fabric\prereqs
+
+Additional scripts:
+C:\Users\gagan\Desktop\benchmark_hermes+fabric\prereqs\scripts
+
+ALL outputs MUST be stored under:
+C:\Users\gagan\Desktop\benchmark_hermes+fabric\benchmarks
+
+====================================================
+PRIMARY OBJECTIVE
+====================================================
+
+Create a fully reproducible benchmark suite comparing:
+
+1. Raw Hermes → Codex
+2. Hermes + Fabric → Codex
+3. Hermes + Fabric(custom patterns) → Codex
+4. Optional direct Codex baseline
+
+The benchmark suite must measure:
+
+- Prompt complexity
+- Fabric prompt transformations
+- Hermes orchestration behavior
+- Codex execution behavior
+- Output quality
+- Latency
+- Recovery behavior
+- Retry behavior
+- Scope discipline
+- Verification rigor
+- Hallucination reduction
+- Planning quality
+- Refactor correctness
+- Multi-file reasoning quality
+- Reliability improvements
+- Complexity scaling
+
+====================================================
+MOST IMPORTANT REQUIREMENT
+====================================================
+
+For EVERY task, capture and persist:
+
+1. ORIGINAL user prompt
+2. Fabric pattern used
+3. Fabric-transformed prompt
+4. Final Codex-facing prompt
+5. Prompt diffs
+6. Hermes orchestration traces
+7. Tool calls
+8. Files read
+9. Files modified
+10. Commands executed
+11. Test runs
+12. Retry loops
+13. Recovery behavior
+14. Timing breakdowns
+15. Final diffs
+16. Verification steps
+17. Final quality evaluation
+
+I care more about:
+- transformations
+- orchestration
+- verification
+- attribution
+- measurable deltas
+
+than only the final output.
+
+====================================================
+REQUIRED INSTRUMENTATION
+====================================================
+
+Enable if available:
+
+- verbose tracing
+- debug tracing
+- orchestration tracing
+- bridge instrumentation
+- telemetry hooks
+- Fabric intermediate prompts
+- Codex execution traces
+- retry logging
+- timing instrumentation
+- tool-call logging
+- token usage tracking
+
+If intermediate Fabric prompts exist:
+SAVE THEM.
+
+If Hermes orchestration events exist:
+SAVE THEM.
+
+If bridge telemetry exists:
+ENABLE IT.
+
+====================================================
+EXECUTION RULES
+====================================================
+
+Before EVERY benchmark:
+
+1. Verify prerequisites exist.
+2. If files/folders are missing:
+   - create them automatically
+   - document generated artifacts
+3. NEVER require manual setup.
+4. Reset workspace state if necessary.
+5. Ensure benchmark reproducibility.
+
+====================================================
+BENCHMARK DIRECTORY STRUCTURE
+====================================================
+
+Create and maintain:
+
+benchmarks/
+├── task00_greeting/
+├── task01_explain_jwt/
+├── task02_signup_flow/
+├── task03_failing_test/
+├── task04_input_validation/
+├── task05_dry_run_flag/
+├── task06_signature_change/
+├── task07_print_to_logger/
+├── task08_config_migration/
+├── task09_flaky_workers/
+├── task10_fm_cli/
+├── aggregate/
+├── traces/
+├── reports/
+├── metrics/
+├── latency/
+├── diffs/
+├── transformed_prompts/
+├── raw_prompts/
+└── graphs/
+
+====================================================
+FOR EACH TASK SAVE
+====================================================
+
+1. raw_prompt.md
+2. transformed_prompt.md
+3. codex_input.md
+4. prompt_diff.md
+5. benchmark.json
+6. metrics.json
+7. latency.json
+8. execution_trace.log
+9. orchestration_trace.log
+10. test_output.log
+11. diff.patch
+12. quality_eval.md
+13. final_report.md
+
+====================================================
+MEASUREMENTS
+====================================================
+
+Record:
+
+- prompt_length_raw
+- prompt_length_transformed
+- expansion_ratio
+- files_read
+- files_written
+- tests_run
+- tests_passed
+- iterations_to_green
+- retries
+- failed_attempts
+- total_runtime_sec
+- hermes_runtime_sec
+- fabric_runtime_sec
+- codex_runtime_sec
+- hallucinated_symbols
+- out_of_scope_edits
+- verification_steps
+- planning_depth
+- context_window_pressure
+- token_estimate
+- recovery_success
+- parallel_workers_used
+
+====================================================
+EXPERIMENTAL MODES
+====================================================
+
+Run EVERY task in:
+
+A. RAW
+No Fabric transformation.
+
+B. FABRIC
+Standard Fabric pattern.
+
+C. FABRIC_CUSTOM
+Custom enhanced pattern.
+
+D. OPTIONAL_ABLATION
+Disable:
+- retries
+- verification
+- planning
+- allowlists
+- done criteria
+
+Measure regressions.
+
+====================================================
+COMPLEXITY MODEL
+====================================================
+
+Compute complexity from:
+
+- scope
+- tools
+- planning
+- verification
+- recovery
+
+Classify tasks into:
+
+Tier 0:
+- greeting
+- trivial reasoning
+
+Tier 1:
+- single-file explanation
+
+Tier 2:
+- multi-file reasoning
+- simple fixes
+
+Tier 3:
+- bounded code modifications
+
+Tier 4:
+- refactors
+- migrations
+
+Tier 5:
+- full system generation
+
+====================================================
+GREETING SANITY TASK
+====================================================
+
+Before all coding tasks run:
+
+Prompt:
+"hello, explain what this repository does"
+
+Measure:
+- Fabric overhead
+- token expansion
+- response structure
+- latency
+- hallucinations
+- read-only reasoning quality
+
+Store under:
+benchmarks/task00_greeting/
+
+====================================================
+TASK EXECUTION ORDER
+====================================================
+
+Run tasks in increasing complexity order.
+
+====================================================
+TASK 1 — Explain JWT
+====================================================
+
+Prompt:
+walk me through how auth/jwt.py validates and refreshes access tokens.
+
+Fabric pattern:
+explain_code
+
+Measure:
+- factual accuracy
+- hallucinated symbols
+- section adherence
+
+====================================================
+TASK 2 — Signup Flow
+====================================================
+
+Prompt:
+explain the data flow from api/handlers.py through services/user.py into db/repo.py when a new user signs up.
+
+Fabric pattern:
+trace_flow
+
+Require:
+- file:line citations
+- ordered call flow
+- mutation tracking
+
+====================================================
+TASK 3 — Failing Test
+====================================================
+
+Prompt:
+tests/test_parser.py::test_handles_empty is failing. fix it. don't change the test.
+
+Require:
+- failing test passes
+- tests untouched
+- no out-of-scope edits
+
+====================================================
+TASK 4 — Input Validation
+====================================================
+
+Prompt:
+parse_frame() in src/parser.py crashes on empty input. add input validation that raises ValueError with a clear message, and add a test in tests/test_parser.py that proves it.
+
+====================================================
+TASK 5 — Dry Run Flag
+====================================================
+
+Prompt:
+add a --dry-run flag to the CLI in src/cli.py that prevents any file writes. add a test in tests/test_cli.py.
+
+====================================================
+TASK 6 — Signature Change
+====================================================
+
+Prompt:
+change decode_packet(buf) to decode_packet(buf, *, strict=False) in src/proto.py. update all callers within src/. tests in tests/test_proto.py must still pass without modification.
+
+====================================================
+TASK 7 — Print To Logger
+====================================================
+
+Prompt:
+replace all print(...) calls in src/ with logger.info(...) and add the logger import where missing. don't touch scripts/.
+
+====================================================
+TASK 8 — Config Migration
+====================================================
+
+Prompt:
+migrate config loading from flat config.ini to nested config.toml. keep config.ini loading as a fallback for one release with a deprecation warning. tests in tests/test_config.py must pass; add new tests for the toml path.
+
+====================================================
+TASK 9 — Flaky Workers
+====================================================
+
+Prompt:
+the background workers are flaky. make them more reliable.
+
+MANDATORY:
+Use improve_prompt before Codex.
+
+Measure Fabric delta carefully.
+
+====================================================
+TASK 10 — File Management CLI
+====================================================
+
+Prompt:
+build a small file-management cli in tools/fm/ with:
+- list
+- move
+- tag
+- search-by-tag
+
+Requirements:
+- python
+- click
+- pytest
+- sqlite-backed tags
+- tests
+- architecture docs
+
+MANDATORY:
+Use stitch pipeline:
+- create_prd
+- improve_prompt
+- codex_brief
+
+====================================================
+FOR EVERY TASK ANALYZE
+====================================================
+
+1. Hermes contributions
+2. Fabric contributions
+3. Codex contributions
+4. Prompt transformations
+5. Verification rigor
+6. Retry behavior
+7. Recovery behavior
+8. Scope discipline
+9. Test correctness
+10. Hallucinations
+11. Planning quality
+12. Latency breakdown
+13. Iteration count
+
+====================================================
+VISUALIZATIONS
+====================================================
+
+Generate charts for:
+
+- latency by mode
+- complexity vs success
+- complexity vs hallucinations
+- complexity vs iterations
+- complexity vs retries
+- prompt expansion ratio
+- Fabric quality delta
+- scope violations
+- recovery success
+- files touched
+
+Save under:
+benchmarks/graphs/
+
+====================================================
+FINAL REPORTS
+====================================================
+
+Generate:
+
+1. Executive summary
+2. Per-task deep dives
+3. Fabric impact analysis
+4. Hermes orchestration analysis
+5. Codex execution analysis
+6. Complexity scaling report
+7. Recovery analysis
+8. Reliability analysis
+9. Ablation findings
+10. Reproducibility guide
+
+Create:
+
+benchmarks/final_master_report.md
+
+====================================================
+FINAL REQUIREMENT
+====================================================
+
+This benchmark suite must be reproducible from a clean checkout and must clearly attribute measurable value to:
+
+- Hermes
+- Fabric
+- Codex
+
+with detailed evidence, traces, transformations, metrics, and comparative analysis.

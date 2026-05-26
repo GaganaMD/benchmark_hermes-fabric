@@ -1,0 +1,13 @@
+[RUN] raw
+variant=raw rc=0
+[RUN] fabric
+variant=fabric rc=0
+[RUN] fabric-improve
+variant=fabric-improve rc=0
+[RUN] fabric-stitch
+variant=fabric-stitch rc=0
+[RUN] hermes
+variant=hermes rc=124
+[RUN] hermes-fabric
+variant=hermes-fabric rc=0
+batch_done=20260526T103101Z

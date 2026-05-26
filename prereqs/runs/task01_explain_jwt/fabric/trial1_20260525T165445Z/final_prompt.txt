@@ -1,0 +1,38 @@
+ANSWER:
+I don’t have the actual `auth/jwt.py` file in your input, so I can’t do a line-by-line walkthrough yet.  
+If you paste the file (or key functions), I can explain exactly how it validates and refreshes access tokens.
+
+In the meantime, here’s the typical flow most `auth/jwt.py` modules implement:
+
+- **Validate access token**
+  - Read token from `Authorization: Bearer <token>`.
+  - Decode JWT with a secret/public key and allowed algorithm(s) (e.g., HS256/RS256).
+  - Verify claims:
+    - `exp` (not expired)
+    - `nbf` (already valid)
+    - `iss` (expected issuer)
+    - `aud` (expected audience)
+    - `sub` (user identity present)
+    - optional: `jti`, `scope`, `role`
+  - Optionally check token revocation/denylist using `jti`.
+  - Load user from DB/cache using `sub`; reject if user disabled/deleted.
+  - Return authenticated principal/context.
+
+- **Refresh token flow**
+  - Client sends refresh token to refresh endpoint.
+  - Server validates refresh token similarly, but usually with:
+    - different signing key or token type claim (`typ=refresh`)
+    - longer `exp`
+    - stricter storage checks (DB-backed session/rotation state)
+  - Ensure refresh token is not revoked and matches active session/device.
+  - **Rotation** (best practice): invalidate old refresh token and issue a new refresh token + new access token.
+  - Persist new refresh token metadata (`jti`, expiry, device, last used).
+  - Return new access token (short TTL) and optionally new refresh token.
+
+- **Common failure paths**
+  - Expired token → 401 / token_expired
+  - Invalid signature/claims → 401 / invalid_token
+  - Revoked refresh token reuse → revoke session family, force re-login
+  - User no longer active → 403/401 depending policy
+
+Share `auth/jwt.py` and I’ll map each function/class directly to this flow.

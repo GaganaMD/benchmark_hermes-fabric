@@ -1,0 +1,12 @@
+{
+  "variant": "fabric-stitch",
+  "batch_ts": "20260526T103101Z",
+  "rc_trace": 0,
+  "runtime_ms": 105804,
+  "runtime_seconds": 105.804,
+  "codex_log_size_bytes": 14202,
+  "stdout_size_bytes": 90,
+  "stderr_size_bytes": 106,
+  "timeout": false,
+  "inferred": false
+}

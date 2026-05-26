@@ -1,0 +1,56 @@
++ cd fixtures/task02_signup_flow
++ hermes -z 'explain the data flow from `api/handlers.py` through `services/user.py` into `db/repo.py` when a new user signs up.' chat
+Here’s the signup data flow, end-to-end, from the actual code.
+
+1) Entry point: api/handlers.py -> post_signup(request)
+- Reads input:
+  - email = (request.get("email") or "").strip().lower()
+  - password = request.get("password") or ""
+- Normalization:
+  - email is trimmed and lowercased at the HTTP layer.
+- Validation:
+  - missing email/password -> returns {"status": 400, "error": "missing fields"}
+  - password length < 8 -> returns {"status": 400, "error": "password too short"}
+- If valid, calls:
+  - user_id = signup_user(email, password)
+
+2) Service layer: services/user.py -> signup_user(email, password)
+- Duplicate check:
+  - calls get_user_by_email(email) from db/repo.py
+  - if found, raises UserExists(email)
+- Password processing:
+  - generates 16-byte random salt: secrets.token_bytes(16)
+  - hashes password with PBKDF2-HMAC-SHA256, 200,000 iterations:
+    - _hash_password(password, salt).hex()
+- Persistence call:
+  - insert_user(email=email, password_hash=pw_hash, salt=salt.hex())
+- Returns inserted row id (int)
+
+3) Repository layer: db/repo.py
+- _conn():
+  - opens sqlite3 connection to users.db
+  - ensures schema exists via CREATE TABLE IF NOT EXISTS users (...)
+- get_user_by_email(email):
+  - SELECT id, email FROM users WHERE email = ?
+  - returns dict {"id": ..., "email": ...} or None
+- insert_user(email, password_hash, salt):
+  - INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)
+  - returns cur.lastrowid
+
+4) Back to handler response mapping
+- If signup_user succeeds:
+  - returns {"status": 201, "user_id": user_id}
+- If signup_user raises UserExists:
+  - returns {"status": 409, "error": "email already registered"}
+
+Important behavior/risk notes
+- Race condition window:
+  - Service does “check then insert” in two DB operations. Concurrent requests for same email can both pass check; one insert then fails on UNIQUE(email).
+  - db/repo.insert_user does not catch sqlite3.IntegrityError, and handler only catches UserExists, so this can bubble as an unhandled 500 instead of clean 409.
+- Schema creation on every connection:
+  - `_conn()` executes schema DDL each call; functional for this toy setup, but not ideal for high throughput.
+- Security baseline:
+  - Good: random per-user salt + PBKDF2 (200k rounds).
+  - Stored fields: password_hash hex string + salt hex string.
+
+If you want, I can map this into a sequence diagram and/or patch it to convert UNIQUE constraint collisions into deterministic 409 responses.

@@ -1,0 +1,8 @@
+ANSWER:
+I don’t have the contents of `auth/jwt.py` in your message, so I can’t walk through its exact logic yet.
+
+Please paste that file (or the relevant functions), and I’ll give you a step-by-step walkthrough of exactly how it:
+
+1. Validates access tokens (signature, claims, expiry, issuer/audience, etc.)
+2. Handles refresh flow (refresh token checks, rotation/revocation, new token issuance)
+3. Deals with failure cases and security edge cases

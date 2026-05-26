@@ -1,0 +1,19 @@
++ cd fixtures/task04_input_validation
++ hermes -z '`parse_frame()` in `src/parser.py` crashes on empty input. add input validation that raises `ValueError` with a clear message, and add a test in `tests/test_parser.py` that proves it.' chat
+Done. I added input validation to `parse_frame()` and a test that proves it.
+
+Changes made:
+
+1) `src/parser.py`
+- Added a guard for empty input:
+  - raises `ValueError("parse_frame() requires non-empty bytes input")`
+
+2) `tests/test_parser.py`
+- Added `test_raises_value_error_on_empty_input()`:
+  - calls `parse_frame(b"")`
+  - asserts that `ValueError` is raised
+  - asserts message includes `"non-empty bytes input"`
+
+Verification:
+- Ran test suite with `pytest -q`
+- Result: `3 passed in 0.02s`

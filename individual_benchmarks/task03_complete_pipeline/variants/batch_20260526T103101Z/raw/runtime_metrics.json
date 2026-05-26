@@ -1,0 +1,12 @@
+{
+  "variant": "raw",
+  "batch_ts": "20260526T103101Z",
+  "rc_trace": 0,
+  "runtime_ms": 65851,
+  "runtime_seconds": 65.851,
+  "codex_log_size_bytes": 8490,
+  "stdout_size_bytes": 79,
+  "stderr_size_bytes": 106,
+  "timeout": false,
+  "inferred": false
+}

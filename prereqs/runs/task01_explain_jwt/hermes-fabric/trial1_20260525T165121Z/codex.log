@@ -1,0 +1,17 @@
++ cd fixtures/task01_explain_jwt
++ hermes exec -- 'ANSWER:
+I can walk you through it, but I don’t have the actual `auth/jwt.py` file yet.
+
+Please paste the contents of `auth/jwt.py` (or the relevant functions), and I’ll break down exactly:
+
+- how token validation is performed (signature, expiry, claims, issuer/audience, etc.)
+- how refresh logic works (refresh token checks, rotation, revocation handling)
+- the control flow for success/failure paths and returned errors'
+usage: hermes [-h] [--version] [-z PROMPT] [-m MODEL] [--provider PROVIDER]
+              [-t TOOLSETS] [--resume SESSION] [--continue [SESSION_NAME]]
+              [--worktree] [--accept-hooks] [--skills SKILLS] [--yolo]
+              [--pass-session-id] [--ignore-user-config] [--ignore-rules]
+              [--tui] [--dev]
+              {chat,model,fallback,gateway,lsp,setup,whatsapp,slack,login,logout,auth,status,cron,webhook,kanban,hooks,doctor,dump,debug,backup,checkpoints,import,config,pairing,skills,plugins,curator,memory,tools,computer-use,mcp,sessions,insights,claw,version,update,uninstall,acp,profile,completion,dashboard,logs}
+              ...
+hermes: error: argument command: invalid choice: 'exec' (choose from 'chat', 'model', 'fallback', 'gateway', 'lsp', 'setup', 'whatsapp', 'slack', 'login', 'logout', 'auth', 'status', 'cron', 'webhook', 'kanban', 'hooks', 'doctor', 'dump', 'debug', 'backup', 'checkpoints', 'import', 'config', 'pairing', 'skills', 'plugins', 'curator', 'memory', 'tools', 'computer-use', 'mcp', 'sessions', 'insights', 'claw', 'version', 'update', 'uninstall', 'acp', 'profile', 'completion', 'dashboard', 'logs')

@@ -1,0 +1,14 @@
+diff --git a/src/__pycache__/proto.cpython-311.pyc b/src/__pycache__/proto.cpython-311.pyc
+index b938f98..ce452d2 100644
+Binary files a/src/__pycache__/proto.cpython-311.pyc and b/src/__pycache__/proto.cpython-311.pyc differ
+diff --git a/src/proto.py b/src/proto.py
+index 5280e9b..fc7f922 100644
+--- a/src/proto.py
++++ b/src/proto.py
+@@ -1,5 +1,5 @@
+ """Packet decoder."""
+-def decode_packet(buf: bytes) -> dict:
++def decode_packet(buf: bytes, *, strict: bool = False) -> dict:
+     if len(buf) < 2:
+         return {"ok": False, "reason": "short"}
+     return {"ok": True, "type": buf[0], "len": buf[1], "body": buf[2:]}

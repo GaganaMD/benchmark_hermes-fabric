@@ -1,0 +1,126 @@
+1. I need to inspect `auth/jwt.py` first; I don’t have its contents yet.
+2. Once you share it (or let me read it), I’ll map execution order for validation and refresh exactly as implemented.
+3. I’ll then provide the walkthrough in the required two-section format, plus sequence diagram, risks, and prioritized improvements.
+
+I can’t safely explain the real flow without the file, and I won’t invent details.
+
+Please provide:
+- `auth/jwt.py` contents
+- (If applicable) any directly referenced settings/helpers (e.g., `settings.py`, `auth/config.py`, token middleware), or let me know I should infer only from imports in `auth/jwt.py`.
+
+---
+
+## Fill-in template I will use (once file is provided)
+
+## Validation flow
+
+**Functions involved**
+- `...`
+- `...`
+
+**Inputs → outputs**
+- `validate_access_token(token: str, ...) -> ...`
+- `decode_jwt(...) -> ...`
+
+**Execution order**
+1. Receive token from `...` (header/cookie/context)
+2. Normalize/strip prefix (`"Bearer "`?) in `...`
+3. Decode call in `...`:
+   ```py
+   # snippet
+   ```
+4. Claims checks (`exp`, `nbf`, `iat`, `aud`, `iss`, `sub`, `jti`) in `...`
+5. User/session lookup in `...`
+6. Return auth principal / claims / error
+
+**Key checks/conditions**
+- Signature algorithm allowlist: `...`
+- Secret/public key source: `...`
+- Required claims: `...`
+- Revocation/blacklist checks: `...`
+
+**Failure paths & exceptions**
+- `ExpiredSignatureError` at `...` → mapped to `...`
+- `InvalidTokenError` / custom exceptions at `...`
+- Missing user / disabled user path at `...`
+
+**Time-based logic**
+- Expiry (`exp`) handling in `...`
+- Leeway/clock skew config in `...`
+- `nbf`/`iat` validation and tolerance in `...`
+
+**Dependencies called out**
+- Settings/env vars: `JWT_SECRET`, `JWT_ALGORITHM`, `JWT_LEEWAY`, etc. (actual names from code)
+- Helper modules: `...`
+- Middleware/hooks: `...`
+
+---
+
+## Refresh flow
+
+**Functions involved**
+- `refresh_access_token(...)`
+- `validate_refresh_token(...)`
+- `issue_access_token(...)`
+
+**Inputs → outputs**
+- Refresh token input source: `...`
+- Return shape: new access token / token pair / response object
+
+**Execution order**
+1. Parse refresh token in `...`
+2. Decode + verify signature/claims in `...`
+3. Validate token type (`"refresh"`) and rotation metadata in `...`
+4. Revocation/reuse detection in `...`
+5. Issue new access token (and maybe rotate refresh token) in `...`:
+   ```py
+   # snippet
+   ```
+6. Persist state/log/audit in `...`
+7. Return final result
+
+**Key checks/conditions**
+- Token type and audience separation
+- Refresh expiry max-age
+- One-time use / rotation / family tracking
+- Subject consistency checks
+
+**Failure paths & exceptions**
+- Expired refresh token
+- Reused/revoked token
+- Store lookup failures
+- Generic invalid token mapping
+
+**Time-based logic**
+- Refresh TTL
+- Rotation grace windows
+- Absolute session lifetime caps
+
+**Dependencies called out**
+- DB/cache/store for token IDs/session state
+- Settings/env for expirations and rotation policy
+- Any middleware/controller invoking refresh path
+
+---
+
+## Sequence diagram (concise)
+- Client → API: `Authorization: Bearer <access>`
+- API → `auth/jwt.py`: validate/decode/check claims
+- `auth/jwt.py` → user/store: verify subject/revocation
+- API → Client: authorized or 401
+
+- Client → API: `<refresh token>`
+- API → `auth/jwt.py`: validate refresh + policy checks
+- `auth/jwt.py` → store: rotation/revocation checks
+- `auth/jwt.py`: mint new access (and optional refresh)
+- API → Client: new token(s) or 401/403
+
+## Security risks / edge cases
+- `...` (filled from actual code)
+- `...`
+- `...`
+
+## Top 3 improvements (highest impact first)
+1. `...`
+2. `...`
+3. `...`

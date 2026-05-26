@@ -1,0 +1,35 @@
+Your answer is directionally right, but a few details are more generic than what this code actually does.
+
+What the actual flow is in this repo:
+
+1) api/handlers.py -> post_signup(request)
+- Reads email and password from request.
+- Normalizes email with strip().lower().
+- Validates:
+  - missing email/password -> 400 "missing fields"
+  - password length < 8 -> 400 "password too short"
+- Calls services.user.signup_user(email, password)
+- Maps UserExists exception to 409 "email already registered"
+- On success returns 201 with {"user_id": <int>}
+
+2) services/user.py -> signup_user(email, password)
+- Checks existence via db.repo.get_user_by_email(email)
+- If found, raises UserExists
+- Generates 16-byte random salt (secrets.token_bytes(16))
+- Hashes password using PBKDF2-HMAC-SHA256 with 200,000 iterations
+- Calls db.repo.insert_user(email=..., password_hash=..., salt=...)
+- Returns inserted row id (int)
+
+3) db/repo.py
+- Uses SQLite (users.db), ensures schema exists on connect
+- get_user_by_email: SELECT id,email WHERE email=?
+- insert_user: INSERT email,password_hash,salt and returns lastrowid
+
+Return path:
+- repo returns new id -> service returns id -> handler returns HTTP-like dict with status 201 and user_id.
+
+Important corrections vs your generic version:
+- No name field handling.
+- No transaction/orchestration beyond simple calls.
+- Handler returns only user_id, not a user DTO.
+- Repo does store hashed password + salt (good security baseline); plaintext never persisted.

@@ -1,0 +1,373 @@
++ cd fixtures/task10_fm_cli
++ hermes -z '# Product Requirements Document (PRD)
+## Project: File Management CLI (`tools/fm/`)
+
+---
+
+## 1. Overview
+
+Build a small Python-based command-line interface (CLI) tool in `tools/fm/` for lightweight file management operations:
+
+- `list` files
+- `move` files
+- `tag` files
+- `search-by-tag`
+
+The CLI should use:
+
+- **Python**
+- **Click** (for CLI interface)
+- **SQLite** (for tag storage, colocated with managed root)
+- **Pytest** (for tests)
+
+This tool is intended to simplify local file organization and retrieval using tag metadata stored separately from file contents.
+
+---
+
+## 2. Objectives
+
+### 2.1 Primary Objectives
+- Provide a minimal, reliable CLI for core file-management tasks.
+- Enable metadata-based retrieval through tags.
+- Persist tags in a local SQLite database located within the managed root directory.
+- Ensure predictable behavior and test coverage with Pytest.
+
+### 2.2 Business / User Value
+- Faster retrieval of files by semantic labels rather than only path/name.
+- Reduced friction in organizing files in small local projects.
+- Lightweight setup with no external services.
+
+---
+
+## 3. Target Audience
+
+- Developers and technical users comfortable with terminal workflows.
+- Users managing local project files who need simple tagging + search functionality.
+- Teams wanting a minimal file-management utility embedded in a repo/tooling directory.
+
+---
+
+## 4. Scope
+
+### 4.1 In Scope (MVP)
+- CLI application under `tools/fm/`
+- Commands:
+  - `list`
+  - `move`
+  - `tag`
+  - `search-by-tag`
+- SQLite-backed tag persistence in DB file located in managed root (e.g., `.fm_tags.db`)
+- Unit and integration-style CLI tests with Pytest
+
+### 4.2 Out of Scope (for initial release)
+- Recursive bulk tagging rules
+- Full-text search in file content
+- Multi-user synchronization
+- GUI/TUI
+- Remote storage integrations
+
+---
+
+## 5. Assumptions & Constraints
+
+### Assumptions
+- Managed root is a local filesystem directory.
+- Files are uniquely identified in DB by normalized path relative to managed root.
+- User has read/write permissions for files and DB location.
+
+### Constraints
+- Implementation language/framework: Python + Click.
+- Test framework: Pytest.
+- Tag metadata must be stored in SQLite DB colocated with managed root.
+- Tool should remain small and maintainable.
+
+---
+
+## 6. User Stories
+
+1. **List files**
+   - As a user, I want to list files under the managed root so I can see what is available.
+
+2. **Move file**
+   - As a user, I want to move a file to a new location and keep tag associations intact.
+
+3. **Tag file**
+   - As a user, I want to attach one or more tags to a file so I can find it later by concept.
+
+4. **Search by tag**
+   - As a user, I want to find files by one or more tags so I can quickly retrieve relevant files.
+
+5. **Error clarity**
+   - As a user, I want clear error messages when paths/tags are invalid so I can fix issues quickly.
+
+---
+
+## 7. Feature Requirements
+
+## 7.1 Command: `list`
+- List files within managed root.
+- Default behavior: non-hidden files only (configurable later; for MVP define explicit behavior).
+- Output relative paths, one per line.
+
+**Example:**
+```bash
+fm --root /data/docs list
+```
+
+---
+
+## 7.2 Command: `move`
+- Move a file from source path to destination path (both within managed root).
+- Create destination parent directories if missing (MVP decision: yes).
+- Update DB path references so tags remain associated.
+
+**Example:**
+```bash
+fm --root /data/docs move notes/todo.txt archive/2026/todo.txt
+```
+
+---
+
+## 7.3 Command: `tag`
+- Add one or multiple tags to a file.
+- Tags should be normalized (e.g., trim whitespace, lowercase).
+- Duplicate tag assignment should be idempotent (no duplicate rows).
+
+**Example:**
+```bash
+fm --root /data/docs tag reports/q1.pdf finance quarterly
+```
+
+---
+
+## 7.4 Command: `search-by-tag`
+- Return files that match tag query.
+- MVP matching semantics:
+  - `AND` across provided tags (file must contain all tags).
+
+**Example:**
+```bash
+fm --root /data/docs search-by-tag finance quarterly
+```
+
+---
+
+## 8. Functional Requirements (Specific & Testable)
+
+| ID | Requirement | Priority | Acceptance Criteria |
+|---|---|---:|---|
+| FR-001 | CLI entrypoint exists in `tools/fm/` and supports `--root` option | P0 | Running `fm --help` shows commands and root option |
+| FR-002 | `list` outputs files relative to root | P0 | Given files in root, command prints expected relative paths |
+| FR-003 | `move` relocates file within root | P0 | Source no longer exists; destination exists after command |
+| FR-004 | `move` updates DB file path associations | P0 | Tags assigned pre-move are searchable at new path |
+| FR-005 | `tag` assigns one or more tags to an existing file | P0 | `search-by-tag` returns file for assigned tags |
+| FR-006 | `tag` is idempotent for duplicate assignments | P1 | Re-tagging same tag does not duplicate DB associations |
+| FR-007 | `search-by-tag` supports multi-tag AND logic | P0 | File returned only when all queried tags are present |
+| FR-008 | SQLite DB is created in managed root if absent | P0 | First tag operation creates DB file automatically |
+| FR-009 | Commands fail with clear errors for files outside root | P0 | Non-zero exit + deterministic error message |
+| FR-010 | CLI returns non-zero status on operational failure | P0 | Pytest asserts exit codes for failure scenarios |
+
+---
+
+## 9. Non-Functional Requirements
+
+### 9.1 Reliability
+- Atomic DB writes per command (transaction boundaries).
+- No partial tag state on failed operations.
+
+### 9.2 Performance
+- For small datasets (up to ~10k files, ~100k tag links), command response should remain interactive (<1s typical on local machine for simple queries).
+
+### 9.3 Usability
+- Consistent, concise command help text.
+- Human-readable error messages.
+
+### 9.4 Portability
+- Must run on major OSes supported by Python (Linux/macOS/Windows), accounting for path normalization.
+
+### 9.5 Maintainability
+- Modular code organization (CLI layer, service layer, storage layer).
+- Tests for core logic and CLI behavior.
+
+---
+
+## 10. Data Model (SQLite)
+
+**DB location:** `<managed_root>/.fm_tags.db` (placeholder filename; can be finalized in implementation)
+
+### 10.1 Proposed Tables
+
+```sql
+files(
+  id INTEGER PRIMARY KEY,
+  rel_path TEXT UNIQUE NOT NULL
+)
+
+tags(
+  id INTEGER PRIMARY KEY,
+  name TEXT UNIQUE NOT NULL
+)
+
+file_tags(
+  file_id INTEGER NOT NULL,
+  tag_id INTEGER NOT NULL,
+  PRIMARY KEY (file_id, tag_id),
+  FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE,
+  FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE
+)
+```
+
+### 10.2 Indexes
+- Index on `tags(name)`
+- Index on `files(rel_path)`
+- Composite primary key already optimizes link uniqueness
+
+---
+
+## 11. CLI UX & Command Contract
+
+## 11.1 Global
+- `fm --root <path> <command> ...`
+- Validate root exists and is a directory.
+- Normalize input paths to root-relative canonical paths.
+
+## 11.2 Exit Codes
+- `0`: success
+- `1`: user/input/validation error
+- `2`: runtime/IO/DB error (optional distinction, but recommended)
+
+## 11.3 Output
+- Success outputs machine-parseable plain text (one path per line where applicable).
+- Errors to stderr.
+
+---
+
+## 12. Testing Strategy (Pytest)
+
+### 12.1 Unit Tests
+- Path normalization utilities
+- Tag normalization
+- Query building for AND tag search
+- DB repository methods
+
+### 12.2 CLI/Integration Tests
+- `list` in temp directory fixture
+- `tag` creates DB and inserts mappings
+- `search-by-tag` returns expected files
+- `move` moves file and preserves tag associations
+- Error paths:
+  - missing file
+  - outside-root path
+  - invalid root
+
+### 12.3 Test Data (Mock/Fixture Example)
+- Root fixture with:
+  - `notes/todo.txt`
+  - `reports/q1.pdf`
+  - `archive/old.txt`
+- Tags:
+  - `todo`, `finance`, `quarterly`
+
+---
+
+## 13. MVP Prioritization
+
+### P0 (Must Have)
+- Core commands (`list`, `move`, `tag`, `search-by-tag`)
+- SQLite persistence colocated with root
+- Path safety validation (within root only)
+- Tag preservation on move
+- Basic test suite in Pytest
+
+### P1 (Should Have)
+- Idempotent duplicate-tag handling validation
+- Strong error taxonomy and exit code consistency
+- Helpful command-level examples in `--help`
+
+### P2 (Could Have, Post-MVP)
+- OR/NOT search modes
+- Remove tag / list tags per file
+- JSON output mode
+
+---
+
+## 14. Implementation Plan & Timeline
+
+## Phase 1: Project Setup (Day 1)
+- Scaffold `tools/fm/`
+- Add package structure and Click entrypoint
+- Configure Pytest
+
+## Phase 2: Core Storage & Models (Day 1–2)
+- SQLite init/migrations-on-startup
+- Repository methods for files/tags/file_tags
+
+## Phase 3: Command Implementation (Day 2–3)
+- Implement `list`
+- Implement `tag`
+- Implement `search-by-tag`
+- Implement `move` + DB sync
+
+## Phase 4: Testing & Hardening (Day 3–4)
+- Add unit and integration tests
+- Improve error handling, exit codes, help text
+
+## Phase 5: Documentation (Day 4)
+- README with usage examples
+- Developer notes for architecture and test running
+
+---
+
+## 15. Success Metrics
+
+- **Functional completion:** All P0 requirements implemented.
+- **Test quality:** ≥90% coverage on core modules (target placeholder).
+- **Reliability:** 100% pass rate for defined CLI integration tests.
+- **Usability:** New user can run setup + first successful tag/search flow in <10 minutes using README.
+
+---
+
+## 16. Risks & Mitigations
+
+- **Risk:** Path handling inconsistencies across OS.
+  - **Mitigation:** Use `pathlib`, normalize and resolve relative to root, test on path edge cases.
+- **Risk:** DB/file drift (file moved outside CLI).
+  - **Mitigation:** Handle missing files gracefully; optionally prune stale DB entries during list/search in future.
+- **Risk:** Ambiguous tag semantics.
+  - **Mitigation:** Document normalization and AND logic explicitly.
+
+---
+
+## 17. Open Questions
+
+1. Should `list` be recursive by default? (Recommended: yes)
+2. Should hidden files be included? (Recommended MVP: no)
+3. Should tag matching be case-insensitive? (Recommended: yes via lowercase normalization)
+4. Should `move` allow overwrite if destination exists? (Recommended MVP: no, fail clearly)
+5. Final DB filename preference (`.fm_tags.db` vs `fm.sqlite3`)? (Placeholder used above)
+
+---
+
+## 18. Suggested Directory Structure (Reference)
+
+```text
+tools/fm/
+  fm/
+    __init__.py
+    cli.py
+    service.py
+    storage.py
+    models.py
+    paths.py
+  tests/
+    test_cli_list.py
+    test_cli_tag_search.py
+    test_cli_move.py
+    test_storage.py
+  pyproject.toml
+  README.md
+```
+
+--- 
+
+**End of PRD**' chat

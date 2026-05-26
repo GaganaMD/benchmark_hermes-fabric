@@ -1,0 +1,34 @@
+ANSWER:
+When a new user signs up, the typical flow across those files is:
+
+1. **`api/handlers.py` (entry point / HTTP layer)**
+   - Receives the signup request (usually JSON like email, password, name).
+   - Validates/parses input (directly or via schema/serializer).
+   - Calls a function in `services/user.py`, passing the cleaned signup data.
+   - Does not usually contain business rules beyond request/response handling.
+   - Returns an HTTP response based on service result (e.g., `201 Created`, error codes).
+
+2. **`services/user.py` (business logic layer)**
+   - Orchestrates signup rules, such as:
+     - checking if user already exists,
+     - hashing password,
+     - setting defaults (roles, status flags, timestamps),
+     - generating verification tokens, etc.
+   - Calls `db/repo.py` functions for database reads/writes.
+   - Converts low-level repo/database errors into domain/service-level outcomes.
+   - Returns a domain object or DTO back to the handler.
+
+3. **`db/repo.py` (persistence layer)**
+   - Executes concrete DB operations (SQL/ORM):
+     - lookup by email/username,
+     - insert new user row,
+     - commit/rollback transaction.
+   - Maps DB records to model/entity objects.
+   - Raises/returns persistence results to the service layer.
+
+4. **Return path back up**
+   - `db/repo.py` returns created user record → `services/user.py`.
+   - `services/user.py` may strip sensitive fields (e.g., password hash), build response-safe object.
+   - `api/handlers.py` serializes that into API response JSON and sends to client.
+
+In short: **handler receives request → service applies signup business logic → repo performs DB operations → result bubbles back to handler for HTTP response**.

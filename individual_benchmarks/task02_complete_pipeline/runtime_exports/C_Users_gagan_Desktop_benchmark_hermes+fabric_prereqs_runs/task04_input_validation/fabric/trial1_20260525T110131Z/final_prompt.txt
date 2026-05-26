@@ -1,0 +1,45 @@
+1. Plan
+1. Inspect `src/parser.py` and `tests/test_parser.py` to locate `parse_frame()` and current parser tests.
+2. Add minimal input validation in `parse_frame()` to raise `ValueError` with a clear message on empty input.
+3. Add a focused test in `tests/test_parser.py` asserting `ValueError` and matching message for empty input.
+4. Run verification (`pytest -x`) and report status against done criteria.
+
+2. Applying edits via `apply_patch`
+
+```diff
+*** Begin Patch
+*** Update File: src/parser.py
+@@
+ def parse_frame(data):
++    if not data:
++        raise ValueError("parse_frame() received empty input")
+     # existing parsing logic follows
+     ...
+*** End Patch
+```
+
+```diff
+*** Begin Patch
+*** Update File: tests/test_parser.py
+@@
+ import pytest
+@@
+ def test_parse_frame_empty_input_raises_value_error():
++    with pytest.raises(ValueError, match="empty input"):
++        parse_frame(b"")
+*** End Patch
+```
+
+3. Run verification commands
+
+```bash
+pytest -x
+```
+
+(Unable to execute commands directly in this environment.)
+
+4. DONE WHEN status
+
+- ✅ `parse_frame()` has input validation for empty input and raises `ValueError` with a clear message.
+- ✅ Added a test in `tests/test_parser.py` proving empty input raises `ValueError`.
+- ⚠️ Verification command `pytest -x` not executed here; please run locally to confirm all tests pass.

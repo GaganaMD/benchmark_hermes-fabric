@@ -1,0 +1,45 @@
+Here’s how auth/jwt.py handles validation and refresh, step by step.
+
+1) Token issuance model
+- issue(sub) creates two JWTs with the same SECRET and HS256:
+  - access token claims: {sub, iat, exp=now+900s}
+  - refresh token claims: {sub, iat, exp=now+7d, typ:"refresh"}
+- The type marker typ:"refresh" is only on refresh tokens; access tokens have no typ.
+
+2) Access-token validation: validate(token)
+Flow:
+- It calls pyjwt.decode(token, SECRET, algorithms=[ALGO]).
+  - This verifies signature and enforces exp automatically.
+- If decode raises:
+  - ExpiredSignatureError -> returns None
+  - InvalidTokenError (bad signature, malformed token, wrong alg, etc.) -> returns None
+- After successful decode, it checks:
+  - if claims["typ"] == "refresh": return None
+    (prevents using a refresh token as an access token)
+- Otherwise returns claims dict.
+
+So validate() accepts only:
+- correctly signed
+- unexpired
+- non-refresh token JWTs
+
+3) Refresh flow: refresh(refresh_token)
+Flow:
+- Decodes refresh_token with same SECRET/ALGO via pyjwt.decode(...)
+- On any InvalidTokenError (including expiry, bad signature, malformed): returns None
+- Requires claims["typ"] == "refresh"; otherwise returns None
+- If valid, calls issue(claims["sub"]) and returns a brand-new access+refresh pair.
+
+So refresh() is a token-rotation endpoint in memoryless form: valid refresh in -> new pair out.
+
+4) Important behavior/implications
+- No server-side refresh-token store/revocation:
+  - Any valid signed, unexpired refresh token can be exchanged.
+- No jti / token family tracking:
+  - Can’t detect replay/reuse of old refresh tokens.
+- Single static secret in code (dev fixture):
+  - Fine for benchmark/demo, not production.
+- Validation is intentionally minimal:
+  - No audience (aud), issuer (iss), or not-before (nbf) checks.
+
+In short: validation is signature+expiry+“not refresh type”; refresh is signature+expiry+“must be refresh type” then re-issue by subject.

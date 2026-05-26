@@ -1,0 +1,6 @@
+1. Identify all `print(...)` calls under `src/`, determine required `logger` import/additions, and confirm no changes are needed outside `src/` or in `scripts/`.
+2. Replace each `print(...)` with `logger.info(...)` and add logger setup/imports where missing using `apply_patch`.
+3. Run verification command(s) (`pytest -x` if tests exist).
+4. Report pass/fail against the done criteria.
+
+I can do this, but I need to inspect the repository files first to safely make scoped edits. Please provide the project tree (or allow me to run a file listing) so I can proceed with exact `apply_patch` changes.

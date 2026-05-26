@@ -1,0 +1,25 @@
++ cd fixtures/task03_failing_test
++ hermes -z '1. Inspect failing test context and locate implementation file in scope.
+2. Make a minimal fix (without editing tests) using `apply_patch`.
+3. Run verification (`pytest -x`) and confirm `tests/test_parser.py::test_handles_empty` passes.
+4. Report DONE WHEN status.
+
+I can’t proceed with edits yet because your rules forbid touching `tests/` (good) but the **FILES IN SCOPE are not explicitly listed**.  
+To comply strictly, please confirm which non-test files are in scope (e.g., `parser.py`, `src/parser.py`, etc.). Once you provide that, I’ll apply the fix immediately.' chat
+DONE WHEN: DONE
+
+What I changed (minimal, no test edits):
+- File: src/parser.py
+- Fix: added an early return for empty input in parse_frame:
+
+if not data:
+    return None
+
+Verification:
+- Ran: pytest -x
+  - Result: 2 passed
+- Ran: pytest -x tests/test_parser.py::test_handles_empty
+  - Result: 1 passed
+
+Status:
+- tests/test_parser.py::test_handles_empty passes.
