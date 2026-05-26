@@ -112,9 +112,49 @@ Before EVERY benchmark:
 2. If files/folders are missing:
    - create them automatically
    - document generated artifacts
+   - create missing prerequisite directories BEFORE task execution
+   - create placeholder prerequisite files when required paths are referenced but absent
+   - never fail solely because an expected empty scaffold directory does not yet exist
+   - preserve exact referenced paths and directory hierarchy
 3. NEVER require manual setup.
 4. Reset workspace state if necessary.
 5. Ensure benchmark reproducibility.
+
+All required directories, placeholder files, logs, reports, and benchmark output structures must be auto-generated if absent.
+
+====================================================
+PREREQUISITE REPAIR POLICY
+====================================================
+
+If a task references a required path that does not exist:
+
+1. Automatically create the missing directory/file scaffold.
+2. Create only the minimum structure necessary.
+3. Do not treat empty scaffold directories as benchmark failures.
+4. Do not implement benchmark logic during prerequisite repair.
+5. Log every auto-generated prerequisite artifact.
+6. Re-run prerequisite validation after repair.
+7. Continue only after validation passes.
+
+====================================================
+ENVIRONMENT PORTABILITY REQUIREMENTS
+====================================================
+
+The benchmark suite must run on:
+- local Windows environments
+- Linux environments
+- Amazon EC2 Ubuntu instances
+
+Avoid:
+- hardcoded absolute paths
+- OS-specific shell assumptions
+- machine-local dependencies
+
+Prefer:
+- relative paths
+- portable subprocess execution
+- reproducible environment setup
+- deterministic outputs
 
 ====================================================
 BENCHMARK DIRECTORY STRUCTURE
