@@ -1,0 +1,136 @@
+  ┊ review diff
+a/src/workers/dispatch.py → b/src/workers/dispatch.py
+@@ -1,4 +1,5 @@
+-"""Background task dispatcher. No retry, no idempotency. Often loses work."""
++"""Background task dispatcher with retry and idempotency support."""
++import time
+ from typing import Callable, Any
+ 
+ _results: dict[str, Any] = {}
+@@ -11,9 +12,32 @@
+     # In real life: pubsub/redis/sqs. Here: a stub that the test will patch.
+     raise NotImplementedError("inject me in tests")
+ 
+-def run_task(handler: Callable[[dict], Any], task_id: str) -> Any:
+-    """Fetch and run one task. No retry. No idempotency."""
+-    payload = fetch_from_broker(task_id)
++def run_task(
++    handler: Callable[[dict], Any],
++    task_id: str,
++    *,
++    max_retries: int = 3,
++    sleep: Callable[[float], None] = time.sleep,
++) -> Any:
++    """Fetch and run one task.
++
++    Broker fetches are retried on BrokerError with exponential backoff. Completed
++    task results are cached by task_id so repeat calls are idempotent.
++    """
++    if task_id in _results:
++        return _results[task_id]
++
++    delay = 0.1
++    for attempt in range(max_retries + 1):
++        try:
++            payload = fetch_from_broker(task_id)
++            break
++        except BrokerError:
++            if attempt == max_retries:
++                raise
++            sleep(delay)
++            delay *= 2
++
+     result = handler(payload)
+     _results[task_id] = result
+     return result
+a/tests/test_workers.py → b/tests/test_workers.py
+@@ -1,6 +1,74 @@
+ from src.workers import dispatch
++
++import pytest
+ 
+ def test_run_task_happy_path(monkeypatch):
+     monkeypatch.setattr(dispatch, "fetch_from_broker", lambda tid: {"n": 21})
+     result = dispatch.run_task(lambda p: p["n"] * 2, "t1")
+     assert result == 42
++
++def test_retries_on_broker_error(monkeypatch):
++    dispatch._results.clear()
++    attempts = []
++    sleeps = []
++
++    def flaky_fetch(tid):
++        attempts.append(tid)
++        if len(attempts) < 3:
++            raise dispatch.BrokerError("temporary broker failure")
++        return {"n": 21}
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", flaky_fetch)
++
++    result = dispatch.run_task(
++        lambda p: p["n"] * 2,
++        "retry-task",
++        max_retries=3,
++        sleep=sleeps.append,
++    )
++
++    assert result == 42
++    assert attempts == ["retry-task", "retry-task", "retry-task"]
++    assert sleeps == [0.1, 0.2]
++
++def test_gives_up_after_max_retries(monkeypatch):
+… omitted 40 diff line(s) across 1 additional file(s)/section(s)
+  ┊ review diff
+a/src/workers/dispatch.py → b/src/workers/dispatch.py
+@@ -27,8 +27,12 @@
+     if task_id in _results:
+         return _results[task_id]
+ 
++    if max_retries < 0:
++        raise ValueError("max_retries must be non-negative")
++
++    attempt = 0
+     delay = 0.1
+-    for attempt in range(max_retries + 1):
++    while True:
+         try:
+             payload = fetch_from_broker(task_id)
+             break
+@@ -37,6 +41,7 @@
+                 raise
+             sleep(delay)
+             delay *= 2
++            attempt += 1
+ 
+     result = handler(payload)
+     _results[task_id] = result
+Completed.
+
+Files changed:
+- src/workers/dispatch.py
+  - Added retry-on-BrokerError around broker fetch.
+  - Added exponential backoff delays starting at 0.1s: 0.1, 0.2, 0.4...
+  - Added configurable max_retries with default 3.
+  - Added injectable sleep callable defaulting to time.sleep for fast/mockable tests.
+  - Added idempotency: if task_id already exists in _results, run_task returns cached result without fetching or invoking the handler.
+  - Added validation for negative max_retries.
+
+- tests/test_workers.py
+  - Left existing test_run_task_happy_path unmodified.
+  - Added test_retries_on_broker_error.
+  - Added test_gives_up_after_max_retries.
+  - Added test_idempotent.
+
+Verification run:
+- pytest -x
+- pytest tests/test_workers.py::test_idempotent -v
+- pytest tests/test_workers.py::test_retries_on_broker_error -v
+
+Result:
+- PASS
+- pytest -x: 4 passed
+- test_idempotent: passed
+- test_retries_on_broker_error: passed
+
+Note:
+- The shell did not have an apply_patch command installed, so I used the available patch tool to apply the same focused patch.

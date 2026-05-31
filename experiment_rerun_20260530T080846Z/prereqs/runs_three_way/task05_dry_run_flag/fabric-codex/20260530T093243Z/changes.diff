@@ -1,0 +1,62 @@
+diff --git a/src/cli.py b/src/cli.py
+index 5ca276b..5cd9200 100644
+--- a/src/cli.py
++++ b/src/cli.py
+@@ -9,18 +9,28 @@ def cli():
+ @cli.command()
+ @click.argument("name")
+ @click.option("--content", default="hello\n")
+-def write(name, content):
++@click.option("--dry-run", is_flag=True, help="Show what would be written without changing files.")
++def write(name, content, dry_run):
+     """Write CONTENT to a file named NAME."""
++    if dry_run:
++        click.echo(f"would write {name}")
++        return
++
+     Path(name).write_text(content)
+     click.echo(f"wrote {name}")
+ 
+ @cli.command()
+ @click.argument("name")
+ @click.option("--suffix", default=".bak")
+-def rename(name, suffix):
++@click.option("--dry-run", is_flag=True, help="Show what would be renamed without changing files.")
++def rename(name, suffix, dry_run):
+     """Rename NAME to NAME+SUFFIX."""
+     src = Path(name)
+     dst = src.with_suffix(src.suffix + suffix)
++    if dry_run:
++        click.echo(f"would rename {name} -> {dst}")
++        return
++
+     src.rename(dst)
+     click.echo(f"renamed {name} -> {dst}")
+ 
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 349a2cb..537bd42 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -7,3 +7,22 @@ def test_write_creates_file(tmp_path, monkeypatch):
+     result = runner.invoke(cli, ["write", "out.txt", "--content", "hi"])
+     assert result.exit_code == 0
+     assert (tmp_path / "out.txt").read_text() == "hi"
++
++def test_write_dry_run_does_not_create_file(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    runner = CliRunner()
++    result = runner.invoke(cli, ["write", "out.txt", "--content", "hi", "--dry-run"])
++    assert result.exit_code == 0
++    assert result.output == "would write out.txt\n"
++    assert not (tmp_path / "out.txt").exists()
++
++def test_rename_dry_run_does_not_rename_file(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    path = tmp_path / "out.txt"
++    path.write_text("hi")
++    runner = CliRunner()
++    result = runner.invoke(cli, ["rename", "out.txt", "--dry-run"])
++    assert result.exit_code == 0
++    assert result.output == "would rename out.txt -> out.txt.bak\n"
++    assert path.read_text() == "hi"
++    assert not (tmp_path / "out.txt.bak").exists()

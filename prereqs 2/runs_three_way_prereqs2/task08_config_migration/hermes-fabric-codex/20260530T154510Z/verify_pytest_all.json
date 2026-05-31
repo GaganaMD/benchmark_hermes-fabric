@@ -1,0 +1,13 @@
+{
+  "name": "pytest_all",
+  "command": [
+    "python3",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 86,
+  "timeout": false,
+  "output": "....                                                                     [100%]\n=============================== warnings summary ===============================\ntests/test_config.py::test_loads_ini\n  /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task08_config_migration/src/config.py:32: DeprecationWarning: config.ini support is deprecated; migrate configuration to config.toml\n    return _load_ini(requested)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n4 passed, 1 warning in 0.01s\n"
+}

@@ -1,0 +1,13 @@
+{
+  "task_id": "task09_flaky_workers",
+  "variant": "fabric-codex",
+  "ts": "20260530T095421Z",
+  "total_ms": 188349,
+  "agent_ms": 81330,
+  "fabric_ms": 107016,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": "fabric -p improve_prompt | fabric -p codex_brief"
+}

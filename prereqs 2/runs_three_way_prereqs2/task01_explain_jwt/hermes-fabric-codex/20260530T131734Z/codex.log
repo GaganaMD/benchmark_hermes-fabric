@@ -1,0 +1,53 @@
+## PURPOSE
+
+`auth/jwt.py` provides minimal JWT handling for issuing, validating, and refreshing access credentials. It uses a shared HS256 secret to create short-lived access tokens and longer-lived refresh tokens, with refresh tokens distinguished by a `"typ": "refresh"` claim.
+
+## FLOW
+
+1. `issue(sub)`
+   1. Captures the current Unix timestamp as `now`. `auth/jwt.py:13`
+   2. Creates an access token containing `sub`, `iat`, and `exp = now + ACCESS_TTL`. `auth/jwt.py:14` `auth/jwt.py:15`
+   3. Signs the access token with `SECRET` using `ALGO`. `auth/jwt.py:16`
+   4. Creates a refresh token containing `sub`, `iat`, `exp = now + REFRESH_TTL`, and `typ = "refresh"`. `auth/jwt.py:18` `auth/jwt.py:19`
+   5. Signs the refresh token with the same `SECRET` and `ALGO`. `auth/jwt.py:20`
+   6. Returns both tokens as `{"access": access, "refresh": refresh}`. `auth/jwt.py:22`
+
+2. `validate(token)`
+   1. Attempts to decode the token using `SECRET` and allowed algorithm `ALGO`. `auth/jwt.py:27` `auth/jwt.py:28`
+   2. If decoding fails because the token is expired, returns `None`. `auth/jwt.py:29` `auth/jwt.py:30`
+   3. If decoding fails for any other invalid-token reason, returns `None`. `auth/jwt.py:31` `auth/jwt.py:32`
+   4. Checks whether the decoded claims have `typ == "refresh"`. `auth/jwt.py:33`
+   5. If the token is a refresh token, rejects it as an access token and returns `None`. `auth/jwt.py:34`
+   6. Otherwise, returns the decoded claims dictionary. `auth/jwt.py:35`
+
+3. `refresh(refresh_token)`
+   1. Attempts to decode the refresh token using `SECRET` and allowed algorithm `ALGO`. `auth/jwt.py:40` `auth/jwt.py:41`
+   2. If decoding fails for any invalid-token reason, returns `None`. `auth/jwt.py:42` `auth/jwt.py:43`
+   3. Checks whether the decoded claims have `typ == "refresh"`. `auth/jwt.py:44`
+   4. If the token is not marked as a refresh token, returns `None`. `auth/jwt.py:45`
+   5. If valid, issues and returns a new access/refresh pair using `claims["sub"]`. `auth/jwt.py:46`
+
+## EDGE CASES
+
+- Expired access token passed to `validate` → catches `pyjwt.ExpiredSignatureError`, returns `None`.
+- Invalid, malformed, badly signed, or otherwise undecodable access token passed to `validate` → catches `pyjwt.InvalidTokenError`, returns `None`.
+- Refresh token passed to `validate` as if it were an access token → returns `None`.
+- Expired refresh token passed to `refresh` → catches `pyjwt.InvalidTokenError`, returns `None`.
+- Invalid, malformed, badly signed, or otherwise undecodable refresh token passed to `refresh` → catches `pyjwt.InvalidTokenError`, returns `None`.
+- Access token or token without `typ == "refresh"` passed to `refresh` → returns `None`.
+- Decoded refresh token has `typ == "refresh"` but no `sub` claim → raises `KeyError`.
+
+## GOTCHAS
+
+- Refresh tokens cannot be used as access tokens because `validate` rejects claims where `typ == "refresh"`.
+- Access tokens issued by `issue` do not include a `typ` claim; `validate` accepts tokens as access tokens unless `typ` is exactly `"refresh"`.
+- `refresh` requires `typ == "refresh"`; a normal access token has no `typ` and will return `None`.
+- Expired tokens decode to `None` through the validation paths rather than returning claims.
+- The signing secret is a module-level constant, `SECRET = "dev-secret-change-me"`; changing it invalidates previously issued tokens signed with the old secret.
+- No clock-skew leeway is configured in the `pyjwt.decode` calls, so expiration handling uses PyJWT defaults.
+
+Files changed: none.
+Verification run: `git diff -- -- . && git status --short` returned no output, confirming a clean read-only workspace. Task-specific verification in `brief.md` says “None — read-only.”
+Recovery behavior: none needed.
+
+session_id: 20260530_061735_bc76b4

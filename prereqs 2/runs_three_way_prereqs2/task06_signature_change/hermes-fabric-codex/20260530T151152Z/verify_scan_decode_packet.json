@@ -1,0 +1,11 @@
+{
+  "name": "scan_decode_packet",
+  "command": [
+    "python3",
+    "<fallback scan decode_packet>"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 14,
+  "timeout": false,
+  "output": "rg unavailable; used Python fallback.\nsrc/handler.py:4:    pkt = decode_packet(raw)\nsrc/processor.py:6:        pkt = decode_packet(r)\nsrc/proto.py:2:def decode_packet(buf, *, strict=False):\n"
+}

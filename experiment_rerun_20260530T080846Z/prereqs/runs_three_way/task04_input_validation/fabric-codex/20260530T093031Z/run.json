@@ -1,0 +1,13 @@
+{
+  "task_id": "task04_input_validation",
+  "variant": "fabric-codex",
+  "ts": "20260530T093031Z",
+  "total_ms": 42669,
+  "agent_ms": 30650,
+  "fabric_ms": 12018,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": "fabric -p codex_brief"
+}

@@ -1,0 +1,106 @@
+## ENTRYPOINT
+
+`api/handlers.py:4` — `post_signup(request: dict) -> dict`
+
+The signup request lands in `post_signup`, which normalizes the email at `api/handlers.py:5`, reads the password at `api/handlers.py:6`, validates required fields at `api/handlers.py:7-8`, validates password length at `api/handlers.py:9-10`, then calls the service layer at `api/handlers.py:12`.
+
+## CALL CHAIN
+
+1. `api/handlers.py:12` — `post_signup()` → `services/user.py:12` `signup_user()`
+
+2. `services/user.py:13` — `signup_user()` → `db/repo.py:21` `get_user_by_email()`
+
+3. `db/repo.py:22` — `get_user_by_email()` → `db/repo.py:16` `_conn()`
+
+4. `db/repo.py:23` — `get_user_by_email()` executes:
+
+   ```sql
+   SELECT id, email FROM users WHERE email = ?
+   ```
+
+5. `services/user.py:16` — `signup_user()` → `services/user.py:9` `_hash_password()`
+
+6. `services/user.py:17` — `signup_user()` → `db/repo.py:26` `insert_user()`
+
+7. `db/repo.py:27` — `insert_user()` → `db/repo.py:16` `_conn()`
+
+8. `db/repo.py:28-31` — `insert_user()` executes:
+
+   ```sql
+   INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)
+   ```
+
+## STATE MUTATIONS
+
+1. `db/repo.py:18` — `_conn()` executes the schema creation SQL from `db/repo.py:6-14`:
+
+   ```sql
+   CREATE TABLE IF NOT EXISTS users (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       email TEXT UNIQUE NOT NULL,
+       password_hash TEXT NOT NULL,
+       salt TEXT NOT NULL,
+       created_at TEXT DEFAULT CURRENT_TIMESTAMP
+   )
+   ```
+
+   This happens when `get_user_by_email()` opens a connection via `_conn()` at `db/repo.py:22`.
+
+2. `db/repo.py:18` — `_conn()` executes the same schema creation SQL again when `insert_user()` opens a connection via `_conn()` at `db/repo.py:27`:
+
+   ```sql
+   CREATE TABLE IF NOT EXISTS users (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       email TEXT UNIQUE NOT NULL,
+       password_hash TEXT NOT NULL,
+       salt TEXT NOT NULL,
+       created_at TEXT DEFAULT CURRENT_TIMESTAMP
+   )
+   ```
+
+3. `db/repo.py:28-31` — `insert_user()` writes the new user row:
+
+   ```sql
+   INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)
+   ```
+
+   The values written are:
+
+   - `email` from the normalized request email at `api/handlers.py:5`, passed into `signup_user()` at `api/handlers.py:12`, then into `insert_user()` at `services/user.py:17`.
+   - `password_hash` created by `_hash_password()` at `services/user.py:16`, using PBKDF2-HMAC-SHA256 at `services/user.py:10`.
+   - `salt` generated with `secrets.token_bytes(16)` at `services/user.py:15`, converted to hex at `services/user.py:17`.
+   - `created_at` is populated by the database default `CURRENT_TIMESTAMP` defined at `db/repo.py:12`.
+
+## EXIT PATHS
+
+1. `api/handlers.py:8` — returns:
+
+   ```python
+   {"status": 400, "error": "missing fields"}
+   ```
+
+   Trigger condition: normalized `email` is empty or `password` is empty, checked at `api/handlers.py:7`.
+
+2. `api/handlers.py:10` — returns:
+
+   ```python
+   {"status": 400, "error": "password too short"}
+   ```
+
+   Trigger condition: `len(password) < 8`, checked at `api/handlers.py:9`.
+
+3. `api/handlers.py:14` — returns:
+
+   ```python
+   {"status": 409, "error": "email already registered"}
+   ```
+
+   Trigger condition: `signup_user()` raises `UserExists`, caught at `api/handlers.py:13`. `UserExists` is raised when `get_user_by_email(email)` returns a user at `services/user.py:13-14`.
+
+4. `api/handlers.py:15` — returns:
+
+   ```python
+   {"status": 201, "user_id": user_id}
+   ```
+
+   Trigger condition: required fields pass validation at `api/handlers.py:7-10`, `signup_user()` does not raise `UserExists` at `api/handlers.py:12-13`, and `insert_user()` returns `cur.lastrowid` at `db/repo.py:32`.

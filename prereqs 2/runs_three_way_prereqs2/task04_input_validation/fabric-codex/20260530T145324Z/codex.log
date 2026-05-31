@@ -1,0 +1,396 @@
+Reading additional input from stdin...
+OpenAI Codex v0.125.0 (research preview)
+--------
+workdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: none
+reasoning summaries: none
+session id: 019e7960-4845-7bf0-be16-4d372dcbbc2b
+--------
+user
+You are Codex running inside this repository. The text below is the exact Fabric-enhanced prompt/context. Do not treat any statement like 'I cannot edit/run commands' as applying to you; you can inspect files, edit files, and run verification in this repo. Complete the underlying task and report verification.
+
+1. Inspect `src/parser.py` and `tests/test_parser.py` to understand current behavior.
+2. Add an early empty-input validation in `parse_frame()`.
+3. Add a focused test asserting `ValueError` for `parse_frame(b"")`.
+4. Run the specified verification commands and report each DONE WHEN condition.`parser.py` and `test_parser.py` before editing:I’m sorry, but I can’t apply edits or run commands in this environment because no filesystem/tool access is available in this chat.
+
+codex
+I’ll inspect the parser and its tests first, then make the smallest change and run the verification commands available in this repo.
+exec
+/bin/zsh -lc "sed -n '1,260p' tests/test_parser.py" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+exec
+/bin/zsh -lc "sed -n '1,220p' src/parser.py" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+ succeeded in 0ms:
+from src.parser import parse_frame
+
+def test_handles_basic():
+    result = parse_frame(b"\x01hello")
+    assert result["header"] == 0x01
+    assert result["payload"] == b"hello"
+
+def test_handles_multi_byte_payload():
+    result = parse_frame(b"\xff\x00\x01\x02")
+    assert result["header"] == 0xff
+    assert result["payload"] == b"\x00\x01\x02"
+
+ succeeded in 0ms:
+"""Frame parser. Missing input validation."""
+def parse_frame(data: bytes) -> dict:
+    header = data[0]
+    payload = data[1:]
+    return {"header": header, "payload": payload}
+
+exec
+/bin/zsh -lc 'find . -maxdepth 2 -type f | sort' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+ succeeded in 0ms:
+./.git/COMMIT_EDITMSG
+./.git/HEAD
+./.git/ORIG_HEAD
+./.git/config
+./.git/description
+./.git/index
+./.pytest_cache/.gitignore
+./.pytest_cache/CACHEDIR.TAG
+./.pytest_cache/README.md
+./__pycache__/conftest.cpython-312-pytest-9.0.3.pyc
+./brief.md
+./conftest.py
+./pattern.txt
+./prompt.txt
+./src/__init__.py
+./src/parser.py
+./tests/__init__.py
+./tests/test_parser.py
+
+codex
+The current failure mode is an `IndexError` from `data[0]`; I’m changing that to an explicit `ValueError` before touching the frame fields, then adding one focused regression test.
+exec
+/bin/zsh -lc "sed -n '1,220p' brief.md" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+exec
+/bin/zsh -lc "sed -n '1,220p' prompt.txt" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+ succeeded in 0ms:
+# TASK
+Add input validation to `parse_frame()` in `src/parser.py` so that empty input raises `ValueError` with a clear message. Add a test in `tests/test_parser.py` proving the new behavior.
+
+# FILES IN SCOPE
+- `src/parser.py`
+- `tests/test_parser.py`
+
+# FORBIDDEN PATHS
+- Anything else
+
+# DONE WHEN
+- `parse_frame(b"")` raises `ValueError` with a non-empty message
+- A new test in `tests/test_parser.py` asserts the `ValueError` is raised
+- All existing tests still pass
+- `pytest -x` exits 0
+- Behavior on non-empty input is unchanged
+
+# VERIFICATION COMMANDS
+```bash
+pytest -x
+python -c "from src.parser import parse_frame
+try:
+    parse_frame(b'')
+    raise SystemExit('expected ValueError')
+except ValueError as e:
+    assert str(e), 'message must be non-empty'"
+```
+
+# CONSTRAINTS
+- Validate early (before any indexing).
+- No new dependencies.
+
+ succeeded in 0ms:
+`parse_frame()` in `src/parser.py` crashes on empty input. add input validation that raises `ValueError` with a clear message, and add a test in `tests/test_parser.py` that proves it.
+
+exec
+/bin/zsh -lc "sed -n '1,120p' pattern.txt" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+ succeeded in 0ms:
+codex_brief
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation/src/parser.py
+diff --git a/src/parser.py b/src/parser.py
+index f1f8c4dfc1d9c062568ac2c7b95eb93e001d7d28..5a78674687e41e7bbeea2a7ff553a8b20ec6f45f
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data must not be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+
+diff --git a/src/parser.py b/src/parser.py
+index f1f8c4dfc1d9c062568ac2c7b95eb93e001d7d28..5a78674687e41e7bbeea2a7ff553a8b20ec6f45f
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data must not be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation/tests/test_parser.py
+diff --git a/src/parser.py b/src/parser.py
+index f1f8c4dfc1d9c062568ac2c7b95eb93e001d7d28..5a78674687e41e7bbeea2a7ff553a8b20ec6f45f
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data must not be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 093112fdd69ac50a61672b4a2ce6f75b46002a19..a31a0fbabb8599524349a901457ad1a58676324b
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -1,3 +1,5 @@
++import pytest
++
+ from src.parser import parse_frame
+ 
+ def test_handles_basic():
+@@ -9,3 +11,7 @@
+     result = parse_frame(b"\xff\x00\x01\x02")
+     assert result["header"] == 0xff
+     assert result["payload"] == b"\x00\x01\x02"
++
++def test_rejects_empty_input():
++    with pytest.raises(ValueError):
++        parse_frame(b"")
+
+diff --git a/src/parser.py b/src/parser.py
+index f1f8c4dfc1d9c062568ac2c7b95eb93e001d7d28..5a78674687e41e7bbeea2a7ff553a8b20ec6f45f
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data must not be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 093112fdd69ac50a61672b4a2ce6f75b46002a19..a31a0fbabb8599524349a901457ad1a58676324b
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -1,3 +1,5 @@
++import pytest
++
+ from src.parser import parse_frame
+ 
+ def test_handles_basic():
+@@ -9,3 +11,7 @@
+     result = parse_frame(b"\xff\x00\x01\x02")
+     assert result["header"] == 0xff
+     assert result["payload"] == b"\x00\x01\x02"
++
++def test_rejects_empty_input():
++    with pytest.raises(ValueError):
++        parse_frame(b"")
+
+codex
+The implementation and test are in place. I’m running both required verification commands now, including the direct message check from the brief.
+exec
+/bin/zsh -lc "python -c \"from src.parser import parse_frame
+try:
+    parse_frame(b'')
+    raise SystemExit('expected ValueError')
+except ValueError as e:
+    assert str(e), 'message must be non-empty'\"" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'pytest -x' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+ succeeded in 0ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+collected 3 items
+
+tests/test_parser.py ...                                                 [100%]
+
+============================== 3 passed in 0.00s ===============================
+
+diff --git a/src/parser.py b/src/parser.py
+index f1f8c4dfc1d9c062568ac2c7b95eb93e001d7d28..5a78674687e41e7bbeea2a7ff553a8b20ec6f45f
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data must not be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 093112fdd69ac50a61672b4a2ce6f75b46002a19..a31a0fbabb8599524349a901457ad1a58676324b
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -1,3 +1,5 @@
++import pytest
++
+ from src.parser import parse_frame
+ 
+ def test_handles_basic():
+@@ -9,3 +11,7 @@
+     result = parse_frame(b"\xff\x00\x01\x02")
+     assert result["header"] == 0xff
+     assert result["payload"] == b"\x00\x01\x02"
++
++def test_rejects_empty_input():
++    with pytest.raises(ValueError):
++        parse_frame(b"")
+
+codex
+Both required commands exited 0. I’m doing a quick diff review so the final report can tie each DONE WHEN condition to the actual changes.
+exec
+/bin/zsh -lc 'git status --short -- src/parser.py tests/test_parser.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+exec
+/bin/zsh -lc 'git diff -- src/parser.py tests/test_parser.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task04_input_validation
+ succeeded in 0ms:
+ M src/parser.py
+ M tests/test_parser.py
+
+ succeeded in 0ms:
+diff --git a/src/parser.py b/src/parser.py
+index f1f8c4d..5a78674 100644
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data must not be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 093112f..a31a0fb 100644
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -1,3 +1,5 @@
++import pytest
++
+ from src.parser import parse_frame
+ 
+ def test_handles_basic():
+@@ -9,3 +11,7 @@ def test_handles_multi_byte_payload():
+     result = parse_frame(b"\xff\x00\x01\x02")
+     assert result["header"] == 0xff
+     assert result["payload"] == b"\x00\x01\x02"
++
++def test_rejects_empty_input():
++    with pytest.raises(ValueError):
++        parse_frame(b"")
+
+diff --git a/src/parser.py b/src/parser.py
+index f1f8c4dfc1d9c062568ac2c7b95eb93e001d7d28..5a78674687e41e7bbeea2a7ff553a8b20ec6f45f
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data must not be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 093112fdd69ac50a61672b4a2ce6f75b46002a19..a31a0fbabb8599524349a901457ad1a58676324b
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -1,3 +1,5 @@
++import pytest
++
+ from src.parser import parse_frame
+ 
+ def test_handles_basic():
+@@ -9,3 +11,7 @@
+     result = parse_frame(b"\xff\x00\x01\x02")
+     assert result["header"] == 0xff
+     assert result["payload"] == b"\x00\x01\x02"
++
++def test_rejects_empty_input():
++    with pytest.raises(ValueError):
++        parse_frame(b"")
+
+codex
+Implemented the empty-input validation in [src/parser.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task04_input_validation/src/parser.py:3). `parse_frame(b"")` now raises `ValueError("frame data must not be empty")` before indexing.
+
+Added the focused regression test in [tests/test_parser.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task04_input_validation/tests/test_parser.py:14).
+
+Verification:
+- `pytest -x` exits 0: `3 passed`
+- Direct `parse_frame(b"")` validation command exits 0
+- Existing non-empty input tests still pass, so behavior there is unchanged
+- The `ValueError` message is non-empty
+diff --git a/src/parser.py b/src/parser.py
+index f1f8c4dfc1d9c062568ac2c7b95eb93e001d7d28..5a78674687e41e7bbeea2a7ff553a8b20ec6f45f
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data must not be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 093112fdd69ac50a61672b4a2ce6f75b46002a19..a31a0fbabb8599524349a901457ad1a58676324b
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -1,3 +1,5 @@
++import pytest
++
+ from src.parser import parse_frame
+ 
+ def test_handles_basic():
+@@ -9,3 +11,7 @@
+     result = parse_frame(b"\xff\x00\x01\x02")
+     assert result["header"] == 0xff
+     assert result["payload"] == b"\x00\x01\x02"
++
++def test_rejects_empty_input():
++    with pytest.raises(ValueError):
++        parse_frame(b"")
+
+2026-05-30T14:54:11.199598Z ERROR codex_core::session: failed to record rollout items: thread 019e7960-4845-7bf0-be16-4d372dcbbc2b not found
+tokens used
+20,151
+Implemented the empty-input validation in [src/parser.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task04_input_validation/src/parser.py:3). `parse_frame(b"")` now raises `ValueError("frame data must not be empty")` before indexing.
+
+Added the focused regression test in [tests/test_parser.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task04_input_validation/tests/test_parser.py:14).
+
+Verification:
+- `pytest -x` exits 0: `3 passed`
+- Direct `parse_frame(b"")` validation command exits 0
+- Existing non-empty input tests still pass, so behavior there is unchanged
+- The `ValueError` message is non-empty

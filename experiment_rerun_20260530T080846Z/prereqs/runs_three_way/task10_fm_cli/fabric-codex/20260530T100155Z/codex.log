@@ -1,0 +1,4308 @@
+OpenAI Codex v0.125.0 (research preview)
+--------
+workdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: none
+reasoning summaries: none
+session id: 019e7857-80b9-7b73-a732-1414559a4024
+--------
+user
+1. Inspect the repository layout to confirm whether `tools/fm/` exists and identify files in scope.
+2. Create or update only files under `tools/fm/` for the CLI package, tests, metadata, and README.
+3. Run the required verification command from `tools/fm` (`pytest`) after edits.
+4. Report pass/fail against each acceptance condition.I’ll inspect the repository first, then implement the scoped `tools/fm/` project and run verification.
+
+exec
+/bin/zsh -lc 'find tools -maxdepth 3 -type f -print 2>/dev/null | sort' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+tools/fm/.gitkeep
+
+exec
+/bin/zsh -lc "pwd && rg --files -g '"'!*__pycache__*'"'" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+brief.md
+README.md
+prompt.txt
+pattern.txt
+requirements.txt
+
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+codex
+`tools/fm/` exists and currently only contains `.gitkeep`. I’m reading the task brief and root metadata now so the implementation matches the expected CLI behavior without touching files outside that directory.
+
+exec
+/bin/zsh -lc "sed -n '1,240p' README.md" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+exec
+/bin/zsh -lc "sed -n '1,240p' brief.md" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+# Task 10: fm CLI
+
+Target dir: `tools/fm/`
+
+The agent should generate the whole project from scratch here.
+
+ succeeded in 0ms:
+# TASK
+Build a small file-management CLI in `tools/fm/`. Commands: `list`, `move`, `tag`, `search-by-tag`. Built with click. Tested with pytest. Tags stored in a sqlite db colocated with the managed root.
+
+# FILES IN SCOPE
+- All files under `tools/fm/` (this directory is yours to build out)
+
+# FORBIDDEN PATHS
+- Anything outside `tools/fm/`
+
+# FILE LAYOUT (suggested)
+```
+tools/fm/
+├── __init__.py
+├── cli.py            # click entry point, `python -m tools.fm.cli`
+├── db.py             # sqlite schema and queries
+├── ops.py            # list, move, tag, search-by-tag implementations
+└── tests/
+    ├── __init__.py
+    └── test_fm.py
+```
+
+# COMMANDS
+
+## `fm list <root>`
+Print every file under `<root>` (recursive), one per line, path relative to `<root>`. Exit 0 even if empty.
+
+## `fm move <src> <dst>`
+Move the file. Update any tag records pointing at the old path (preserve all tags).
+
+## `fm tag <path> <tag>`
+Add a tag to a file. Tags are arbitrary non-empty strings. A file may have many tags. A tag may be on many files. Adding the same (path, tag) twice is a no-op.
+
+## `fm search-by-tag <root> <tag>`
+Print every file under `<root>` that has `<tag>`, path relative to `<root>`, one per line.
+
+# DB SCHEMA
+SQLite file at `<root>/.fm.db`. Created lazily on first write.
+
+```sql
+CREATE TABLE files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT UNIQUE NOT NULL
+);
+CREATE TABLE tags (
+    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (file_id, tag)
+);
+```
+
+# DONE WHEN
+- `python -m tools.fm.cli list .` works in an empty dir (prints nothing, exit 0)
+- `tag README.md draft && search-by-tag . draft` prints `README.md`
+- `move README.md NOTES.md && search-by-tag . draft` prints `NOTES.md`
+- `pytest tools/fm/tests/` exits 0 with at least 4 tests covering list, move, tag, search-by-tag
+- `python -m tools.fm.cli --help` shows all four subcommands
+
+# VERIFICATION COMMANDS
+```bash
+pytest tools/fm/tests/
+python -m tools.fm.cli --help
+```
+
+# CONSTRAINTS
+- click only, no other CLI lib.
+- stdlib `sqlite3`.
+- Paths stored in DB as relative-to-root; the CLI converts as needed.
+- `move` is atomic from the user's POV: file moved AND tags updated, or neither.
+
+exec
+/bin/zsh -lc "sed -n '1,240p' requirements.txt" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+click
+pytest
+
+exec
+/bin/zsh -lc "sed -n '1,240p' prompt.txt" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+build a small file-management cli in `tools/fm/` with: list, move, tag, search-by-tag. python, click, pytest. tags stored in a sqlite db colocated with the managed root.
+
+codex
+I have the behavior surface now. I’m adding a small package with separated CLI, DB access, operations, focused pytest coverage, and local metadata/docs, all under `tools/fm/`.
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm/README.md
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm/__init__.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm/cli.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm/db.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm/ops.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm/pyproject.toml
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm/tests/__init__.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm/tests/test_fm.py
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..43d2b6d74f1869217d624bc82f6af14dbe7ab822
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,90 @@
++from __future__ import annotations
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
++
+
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..43d2b6d74f1869217d624bc82f6af14dbe7ab822
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,90 @@
++from __future__ import annotations
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
++
+
+codex
+One packaging wrinkle: running `pytest` from inside `tools/fm` changes the import root. I’m adjusting the tests so they exercise `tools.fm.cli` the same way the module command does, regardless of whether pytest is launched from repo root or `tools/fm`.
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm/tests/test_fm.py
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..20cc5aa667f113870a9bed528ac800dea798e150
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,94 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++from click.testing import CliRunner
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
+
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..20cc5aa667f113870a9bed528ac800dea798e150
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,94 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++from click.testing import CliRunner
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
+
+codex
+The implementation is in place. I’m running the required `pytest` command from `tools/fm` now, then I’ll check the CLI help output.
+
+exec
+/bin/zsh -lc 'python -m tools.fm.cli --help' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+Usage: python -m tools.fm.cli [OPTIONS] COMMAND [ARGS]...
+
+  Manage files and simple tags.
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  list           Print files under ROOT.
+  move           Move SRC to DST and preserve tags.
+  search-by-tag  Print files under ROOT with TAG.
+  tag            Add TAG to PATH.
+
+exec
+/bin/zsh -lc pytest in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..20cc5aa667f113870a9bed528ac800dea798e150
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,94 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++from click.testing import CliRunner
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
+
+ succeeded in 112ms:
+codex
+`pytest` from `tools/fm` passes with 6 tests, and `python -m tools.fm.cli --help` lists the four required commands. I’m doing a final scope/status check before reporting acceptance results.
+
+exec
+/bin/zsh -lc 'find tools/fm -maxdepth 3 -type f -print | sort' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+tools/fm/.gitkeep
+tools/fm/.pytest_cache/.gitignore
+tools/fm/.pytest_cache/CACHEDIR.TAG
+tools/fm/.pytest_cache/README.md
+tools/fm/README.md
+tools/fm/__init__.py
+tools/fm/cli.py
+tools/fm/db.py
+tools/fm/ops.py
+tools/fm/pyproject.toml
+tools/fm/tests/__init__.py
+tools/fm/tests/test_fm.py
+
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+?? tools/fm/README.md
+?? tools/fm/__init__.py
+?? tools/fm/cli.py
+?? tools/fm/db.py
+?? tools/fm/ops.py
+?? tools/fm/pyproject.toml
+?? tools/fm/tests/
+
+exec
+/bin/zsh -lc 'python -m tools.fm.cli list .' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm
+ exited 1 in 0ms:
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/.venv/bin/python: Error while finding module specification for 'tools.fm.cli' (ModuleNotFoundError: No module named 'tools')
+
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..20cc5aa667f113870a9bed528ac800dea798e150
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,94 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++from click.testing import CliRunner
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
+
+codex
+The final status check found pytest’s cache directory under `tools/fm`; I’m removing that generated cache so the delivered files stay intentional. The CLI module check is valid from the repository root, which matches the package path.
+
+exec
+/bin/zsh -lc 'rm -rf .pytest_cache' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli/tools/fm
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'tmpdir=$(mktemp -d); python -m tools.fm.cli list "$tmpdir"; rmdir "$tmpdir"' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'tmpdir=$(mktemp -d); printf '"'x' > \""'$tmpdir/README.md"; python -m tools.fm.cli tag "$tmpdir/README.md" draft; python -m tools.fm.cli search-by-tag "$tmpdir" draft; python -m tools.fm.cli move "$tmpdir/README.md" "$tmpdir/NOTES.md"; python -m tools.fm.cli search-by-tag "$tmpdir" draft; rm -rf "$tmpdir"' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+README.md
+NOTES.md
+
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..20cc5aa667f113870a9bed528ac800dea798e150
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,94 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++from click.testing import CliRunner
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
+
+exec
+/bin/zsh -lc 'find tools/fm -maxdepth 3 -type f -print | sort' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+tools/fm/.gitkeep
+tools/fm/README.md
+tools/fm/__init__.py
+tools/fm/cli.py
+tools/fm/db.py
+tools/fm/ops.py
+tools/fm/pyproject.toml
+tools/fm/tests/__init__.py
+tools/fm/tests/test_fm.py
+
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+?? tools/fm/README.md
+?? tools/fm/__init__.py
+?? tools/fm/cli.py
+?? tools/fm/db.py
+?? tools/fm/ops.py
+?? tools/fm/pyproject.toml
+?? tools/fm/tests/
+
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..20cc5aa667f113870a9bed528ac800dea798e150
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,94 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++from click.testing import CliRunner
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
+
+exec
+/bin/zsh -lc 'tmpdir=$(mktemp -d); cd "$tmpdir"; PYTHONPATH=/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli python -m tools.fm.cli list .; rmdir "$tmpdir"' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'tmpdir=$(mktemp -d); cd "$tmpdir"; printf '"'x' > README.md; PYTHONPATH=/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli python -m tools.fm.cli tag README.md draft; PYTHONPATH=/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli python -m tools.fm.cli search-by-tag . draft; PYTHONPATH=/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli python -m tools.fm.cli move README.md NOTES.md; PYTHONPATH=/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli python -m tools.fm.cli search-by-tag . draft; cd /; rm -rf \""'$tmpdir"' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task10_fm_cli
+ succeeded in 0ms:
+README.md
+NOTES.md
+
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..20cc5aa667f113870a9bed528ac800dea798e150
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,94 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++from click.testing import CliRunner
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
+
+codex
+Implemented the `tools/fm/` CLI package only under the requested scope.
+
+**Verification**
+- `pytest` from `tools/fm`: PASS, `6 passed`
+- `python -m tools.fm.cli --help`: PASS, shows `list`, `move`, `tag`, `search-by-tag`
+
+**Acceptance Conditions**
+- `tools/fm/` exists and contains the CLI package, tests, metadata, README: PASS
+- Only files under `tools/fm/` were created/updated: PASS
+- `list` on an empty directory prints nothing and exits 0: PASS
+- `tag README.md draft && search-by-tag . draft` prints `README.md`: PASS
+- `move README.md NOTES.md && search-by-tag . draft` prints `NOTES.md`: PASS
+- Pytest coverage includes list, move, tag, search-by-tag with at least 4 tests: PASS, 6 tests
+- Help shows all four subcommands: PASS
+diff --git a/tools/fm/README.md b/tools/fm/README.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..fed46772a5047a8c2b84b2ee636115c7c3bca55b
+--- /dev/null
++++ b/tools/fm/README.md
+@@ -0,0 +1,22 @@
++# fm
++
++A small Click-based file-management CLI.
++
++## Commands
++
++- `python -m tools.fm.cli list <root>`
++- `python -m tools.fm.cli move <src> <dst>`
++- `python -m tools.fm.cli tag <path> <tag>`
++- `python -m tools.fm.cli search-by-tag <root> <tag>`
++
++Tags are stored in `<root>/.fm.db` using SQLite. Paths are stored relative to
++the managed root.
++
++## Test
++
++Run from this directory:
++
++```bash
++pytest
++```
++
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..cf60768036da6c0008e46dba30b1cbbdfa8d892e
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,62 @@
++"""Click entry point for fm."""
++
++from __future__ import annotations
++
++import sys
++from collections.abc import Callable
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and simple tags."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=str))
++def list_command(root: str) -> None:
++    """Print files under ROOT."""
++    _run(lambda: ops.list_files(root))
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=str))
++@click.argument("dst", type=click.Path(path_type=str))
++def move_command(src: str, dst: str) -> None:
++    """Move SRC to DST and preserve tags."""
++    _run(lambda: ops.move_file(src, dst), prints=False)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=str))
++@click.argument("tag")
++def tag_command(path: str, tag: str) -> None:
++    """Add TAG to PATH."""
++    _run(lambda: ops.add_tag(path, tag), prints=False)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=str))
++@click.argument("tag")
++def search_by_tag_command(root: str, tag: str) -> None:
++    """Print files under ROOT with TAG."""
++    _run(lambda: ops.search_by_tag(root, tag))
++
++
++def _run(action: Callable[[], list[str] | None], *, prints: bool = True) -> None:
++    try:
++        result = action()
++    except (FileNotFoundError, NotADirectoryError, ValueError, OSError) as exc:
++        click.echo(str(exc), err=True)
++        sys.exit(1)
++
++    if prints and result:
++        click.echo("\n".join(result))
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..51d3f1eeafd61edefe03409426056c387e0f2f7f
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,47 @@
++"""SQLite storage for file tags."""
++
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    database = db_path(root)
++    if not create and not database.exists():
++        return None
++
++    conn = sqlite3.connect(database)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++    return conn
++
++
++def ensure_file(conn: sqlite3.Connection, rel_path: str) -> int:
++    conn.execute("INSERT OR IGNORE INTO files(path) VALUES (?)", (rel_path,))
++    row = conn.execute("SELECT id FROM files WHERE path = ?", (rel_path,)).fetchone()
++    if row is None:
++        raise RuntimeError(f"failed to create file record for {rel_path}")
++    return int(row[0])
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..1e803351f067dab5e7dd8c631160ec2e4b4bd4d7
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,123 @@
++"""Filesystem and tag operations for the fm CLI."""
++
++from __future__ import annotations
++
++import os
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).expanduser().resolve()
++
++
++def _display_path(path: Path, root: Path) -> str:
++    return path.relative_to(root).as_posix()
++
++
++def _cli_path_root(path: Path) -> Path:
++    if path.is_absolute():
++        return path.parent.resolve()
++    return Path.cwd().resolve()
++
++
++def _relative_to_root(path: Path, root: Path) -> str:
++    full_path = path.expanduser().resolve() if path.is_absolute() else (Path.cwd() / path).resolve()
++    return full_path.relative_to(root).as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    root_path = resolve_root(root)
++    if not root_path.exists():
++        raise FileNotFoundError(f"root does not exist: {root}")
++    if not root_path.is_dir():
++        raise NotADirectoryError(f"root is not a directory: {root}")
++
++    files = [
++        _display_path(path, root_path)
++        for path in root_path.rglob("*")
++        if path.is_file() and path.name != db.DB_NAME
++    ]
++    return sorted(files)
++
++
++def add_tag(path: str | Path, tag: str) -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    path_obj = Path(path).expanduser()
++    root = _cli_path_root(path_obj)
++    rel_path = _relative_to_root(path_obj, root)
++    full_path = root / rel_path
++    if not full_path.is_file():
++        raise FileNotFoundError(f"file does not exist: {path}")
++
++    conn = db.connect(root, create=True)
++    assert conn is not None
++    with conn:
++        file_id = db.ensure_file(conn, rel_path)
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++    conn.close()
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    root_path = resolve_root(root)
++    conn = db.connect(root_path, create=False)
++    if conn is None:
++        return []
++
++    rows = conn.execute(
++        """
++        SELECT files.path
++        FROM files
++        JOIN tags ON files.id = tags.file_id
++        WHERE tags.tag = ?
++        ORDER BY files.path
++        """,
++        (tag,),
++    ).fetchall()
++    conn.close()
++
++    return [
++        rel_path
++        for (rel_path,) in rows
++        if (root_path / rel_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path) -> None:
++    src_path = Path(src).expanduser()
++    dst_path = Path(dst).expanduser()
++    root = _cli_path_root(src_path)
++    src_rel = _relative_to_root(src_path, root)
++    dst_rel = _relative_to_root(dst_path, root)
++    full_src = root / src_rel
++    full_dst = root / dst_rel
++
++    if not full_src.is_file():
++        raise FileNotFoundError(f"source file does not exist: {src}")
++    if not full_dst.parent.exists():
++        raise FileNotFoundError(f"destination directory does not exist: {full_dst.parent}")
++
++    conn = db.connect(root, create=False)
++    try:
++        if conn is not None:
++            conn.execute("BEGIN IMMEDIATE")
++            conn.execute("UPDATE files SET path = ? WHERE path = ?", (dst_rel, src_rel))
++        try:
++            os.replace(full_src, full_dst)
++        except OSError:
++            if conn is not None:
++                conn.rollback()
++            raise
++        if conn is not None:
++            conn.commit()
++    finally:
++        if conn is not None:
++            conn.close()
++
+diff --git a/tools/fm/pyproject.toml b/tools/fm/pyproject.toml
+new file mode 100644
+index 0000000000000000000000000000000000000000..89c68359598f231a7dfea7a80cfdd5cadbee50aa
+--- /dev/null
++++ b/tools/fm/pyproject.toml
+@@ -0,0 +1,2 @@
++[tool.pytest.ini_options]
++testpaths = ["tests"]
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..060ef0e80d4ef7d78ee395fb395ba58850db113a
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for fm."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..20cc5aa667f113870a9bed528ac800dea798e150
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,94 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++from click.testing import CliRunner
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
++
++from tools.fm.cli import cli
++
++
++def invoke(runner: CliRunner, *args: str):
++    return runner.invoke(cli, list(args))
++
++
++def test_list_empty_dir_prints_nothing() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_list_prints_recursive_relative_files() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("root.txt", "w", encoding="utf-8") as file:
++            file.write("root")
++        import os
++
++        os.mkdir("docs")
++        with open("docs/readme.md", "w", encoding="utf-8") as file:
++            file.write("docs")
++
++        result = invoke(runner, "list", ".")
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["docs/readme.md", "root.txt"]
++
++
++def test_tag_and_search_by_tag() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_duplicate_tag_is_noop() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        first = invoke(runner, "tag", "README.md", "draft")
++        second = invoke(runner, "tag", "README.md", "draft")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_preserves_tags() -> None:
++    runner = CliRunner()
++    with runner.isolated_filesystem():
++        with open("README.md", "w", encoding="utf-8") as file:
++            file.write("notes")
++
++        tag_result = invoke(runner, "tag", "README.md", "draft")
++        move_result = invoke(runner, "move", "README.md", "NOTES.md")
++        search_result = invoke(runner, "search-by-tag", ".", "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands() -> None:
++    runner = CliRunner()
++    result = invoke(runner, "--help")
++
++    assert result.exit_code == 0
++    for command in ("list", "move", "tag", "search-by-tag"):
++        assert command in result.output
+
+2026-05-30T10:06:51.359377Z ERROR codex_core::session: failed to record rollout items: thread 019e7857-80b9-7b73-a732-1414559a4024 not found
+tokens used
+57,538
+Implemented the `tools/fm/` CLI package only under the requested scope.
+
+**Verification**
+- `pytest` from `tools/fm`: PASS, `6 passed`
+- `python -m tools.fm.cli --help`: PASS, shows `list`, `move`, `tag`, `search-by-tag`
+
+**Acceptance Conditions**
+- `tools/fm/` exists and contains the CLI package, tests, metadata, README: PASS
+- Only files under `tools/fm/` were created/updated: PASS
+- `list` on an empty directory prints nothing and exits 0: PASS
+- `tag README.md draft && search-by-tag . draft` prints `README.md`: PASS
+- `move README.md NOTES.md && search-by-tag . draft` prints `NOTES.md`: PASS
+- Pytest coverage includes list, move, tag, search-by-tag with at least 4 tests: PASS, 6 tests
+- Help shows all four subcommands: PASS

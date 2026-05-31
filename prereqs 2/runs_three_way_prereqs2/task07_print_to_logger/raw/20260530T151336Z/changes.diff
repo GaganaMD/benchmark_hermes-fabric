@@ -1,0 +1,37 @@
+diff --git a/src/ingest.py b/src/ingest.py
+index 565b375..6cc93eb 100644
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+diff --git a/src/reporter.py b/src/reporter.py
+index 7d8140b..94a0924 100644
+--- a/src/reporter.py
++++ b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary

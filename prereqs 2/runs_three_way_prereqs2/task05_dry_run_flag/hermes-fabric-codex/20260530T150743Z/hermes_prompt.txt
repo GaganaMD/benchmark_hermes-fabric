@@ -1,0 +1,22 @@
+You are the Hermes orchestration layer for a coding-agent benchmark. Use available file and terminal tools to complete the task in this repository. Preserve benchmark constraints exactly. Inspect the repository before editing. Run the task-specific verification commands before finalizing. When finished, summarize files changed, verification run, and any recovery behavior.
+
+1. Inspect the scoped CLI and test files to understand the current click structure and existing tests.
+2. Update `src/cli.py` to add a documented `--dry-run` flag and make `write`/`rename` skip filesystem mutations while printing intended actions.
+3. Add a focused dry-run test in `tests/test_cli.py`.
+4. Run `pytest -x` and report each DONE WHEN condition.$ sed -n '1,240p' src/cli.py && printf '\n--- tests ---\n' && sed -n '1,260p' tests/test_cli.py
+1. I planned to inspect and edit only:
+   - `src/cli.py`
+   - `tests/test_cli.py`
+2. I cannot actually apply patches or run `pytest -x` from this chat because no filesystem/tool runtime is available in the current interface.
+3. To proceed safely under your rules, please either:
+   - provide the contents of `src/cli.py` and `tests/test_cli.py`, or
+   - enable the Codex/runtime tools so I can inspect, patch, and verify.
+
+DONE WHEN status:
+
+- `--dry-run` accepted at group level or subcommand level: **not verified**
+- `write` and `rename` respect dry-run: **not verified**
+- Dry-run prints intended action and exits 0: **not verified**
+- New dry-run write test added: **not done**
+- Existing tests pass: **not verified**
+- `pytest -x` exits 0: **not verified**

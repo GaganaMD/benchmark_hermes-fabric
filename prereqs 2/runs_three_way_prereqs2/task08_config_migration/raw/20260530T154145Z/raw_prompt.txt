@@ -1,0 +1,1 @@
+migrate config loading from flat `config.ini` to nested `config.toml`. keep `config.ini` loading as a fallback for one release with a deprecation warning. tests in `tests/test_config.py` must pass; add new tests for the toml path.

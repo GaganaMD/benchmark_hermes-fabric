@@ -1,0 +1,39 @@
+[
+  {
+    "name": "scan_print_src",
+    "command": [
+      "python3",
+      "<fallback AST scan print calls>"
+    ],
+    "exit_code": 0,
+    "elapsed_ms": 15,
+    "timeout": false,
+    "output": "rg unavailable; used Python AST fallback.\n"
+  },
+  {
+    "name": "pytest_all",
+    "command": [
+      "python3",
+      "-m",
+      "pytest",
+      "-q"
+    ],
+    "exit_code": 5,
+    "elapsed_ms": 75,
+    "timeout": false,
+    "output": "\nno tests ran in 0.00s\n"
+  },
+  {
+    "name": "git_diff_scripts",
+    "command": [
+      "git",
+      "diff",
+      "--",
+      "scripts/"
+    ],
+    "exit_code": 0,
+    "elapsed_ms": 7,
+    "timeout": false,
+    "output": ""
+  }
+]

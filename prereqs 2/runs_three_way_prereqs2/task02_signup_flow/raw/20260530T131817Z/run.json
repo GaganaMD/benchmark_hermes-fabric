@@ -1,0 +1,40 @@
+{
+  "task": "T2",
+  "task_id": "task02_signup_flow",
+  "variant": "raw",
+  "ts": "20260530T131817Z",
+  "total_ms": 31503,
+  "agent_ms": 31503,
+  "fabric_ms": null,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "prompt_timeout": false,
+  "fabric_command": "",
+  "verification": [
+    {
+      "name": "git_diff_readonly",
+      "command": [
+        "git",
+        "diff",
+        "--"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 9,
+      "timeout": false,
+      "output": ""
+    },
+    {
+      "name": "git_status_readonly",
+      "command": [
+        "git",
+        "status",
+        "--short"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 9,
+      "timeout": false,
+      "output": ""
+    }
+  ]
+}

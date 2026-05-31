@@ -1,0 +1,13 @@
+1. Inspect `src/parser.py` and `tests/test_parser.py` to understand current behavior and test style.
+2. Patch `parse_frame()` to validate empty input and raise a clear `ValueError`.
+3. Add a focused regression test in `tests/test_parser.py`.
+4. Run the verification command (`pytest -x`) and report each done condition.```bash
+sed -n '1,200p' src/parser.py && printf '\n--- tests ---\n' && sed -n '1,200p' tests/test_parser.py
+```Unable to proceed with edits because this chat/runtime did not expose filesystem or shell tools, so I cannot:
+
+- inspect `src/parser.py` or `tests/test_parser.py`
+- apply a scoped patch via `apply_patch`
+- run `pytest -x`
+- honestly report verification results
+
+Please provide tool access or paste the contents of `src/parser.py` and `tests/test_parser.py`, and I can produce the exact patch.

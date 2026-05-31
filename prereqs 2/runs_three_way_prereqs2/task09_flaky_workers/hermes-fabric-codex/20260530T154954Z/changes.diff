@@ -1,0 +1,135 @@
+diff --git a/src/workers/dispatch.py b/src/workers/dispatch.py
+index cc42b8e..4ad71a2 100644
+--- a/src/workers/dispatch.py
++++ b/src/workers/dispatch.py
+@@ -1,4 +1,5 @@
+-"""Background task dispatcher. No retry, no idempotency. Often loses work."""
++"""Background task dispatcher with retry and idempotent result caching."""
++import time
+ from typing import Callable, Any
+ 
+ _results: dict[str, Any] = {}
+@@ -11,9 +12,33 @@ def fetch_from_broker(task_id: str) -> dict:
+     # In real life: pubsub/redis/sqs. Here: a stub that the test will patch.
+     raise NotImplementedError("inject me in tests")
+ 
+-def run_task(handler: Callable[[dict], Any], task_id: str) -> Any:
+-    """Fetch and run one task. No retry. No idempotency."""
+-    payload = fetch_from_broker(task_id)
+-    result = handler(payload)
+-    _results[task_id] = result
+-    return result
++def run_task(
++    handler: Callable[[dict], Any],
++    task_id: str,
++    *,
++    max_retries: int = 3,
++    sleep: Callable[[float], None] = time.sleep,
++) -> Any:
++    """Fetch and run one task, retrying broker failures and caching results.
++
++    ``max_retries`` is the number of retry attempts after the initial broker
++    fetch. Backoff starts at 0.1s and doubles after each retryable failure.
++    """
++    if task_id in _results:
++        return _results[task_id]
++
++    delay = 0.1
++    for attempt in range(max_retries + 1):
++        try:
++            payload = fetch_from_broker(task_id)
++        except BrokerError:
++            if attempt == max_retries:
++                raise
++            sleep(delay)
++            delay *= 2
++        else:
++            result = handler(payload)
++            _results[task_id] = result
++            return result
++
++    raise BrokerError("retry attempts exhausted")
+diff --git a/tests/test_workers.py b/tests/test_workers.py
+index dbd9cdf..bdd044d 100644
+--- a/tests/test_workers.py
++++ b/tests/test_workers.py
+@@ -1,6 +1,79 @@
+ from src.workers import dispatch
+ 
++
+ def test_run_task_happy_path(monkeypatch):
+     monkeypatch.setattr(dispatch, "fetch_from_broker", lambda tid: {"n": 21})
+     result = dispatch.run_task(lambda p: p["n"] * 2, "t1")
+     assert result == 42
++
++
++def test_retries_on_broker_error(monkeypatch):
++    attempts = []
++    sleeps = []
++
++    def flaky_fetch(task_id):
++        attempts.append(task_id)
++        if len(attempts) <= 2:
++            raise dispatch.BrokerError("broker unavailable")
++        return {"n": 21}
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", flaky_fetch)
++
++    result = dispatch.run_task(
++        lambda payload: payload["n"] * 2,
++        "retry-task",
++        sleep=sleeps.append,
++    )
++
++    assert result == 42
++    assert attempts == ["retry-task", "retry-task", "retry-task"]
++    assert sleeps == [0.1, 0.2]
++
++
++def test_gives_up_after_max_retries(monkeypatch):
++    attempts = []
++    sleeps = []
++
++    def always_fails(task_id):
++        attempts.append(task_id)
++        raise dispatch.BrokerError("still down")
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", always_fails)
++
++    try:
++        dispatch.run_task(
++            lambda payload: payload["n"] * 2,
++            "exhausted-task",
++            max_retries=2,
++            sleep=sleeps.append,
++        )
++    except dispatch.BrokerError as exc:
++        assert str(exc) == "still down"
++    else:
++        raise AssertionError("expected BrokerError after retry exhaustion")
++
++    assert attempts == ["exhausted-task", "exhausted-task", "exhausted-task"]
++    assert sleeps == [0.1, 0.2]
++
++
++def test_idempotent(monkeypatch):
++    handler_calls = []
++    fetch_calls = []
++
++    def fetch(task_id):
++        fetch_calls.append(task_id)
++        return {"n": 21}
++
++    def handler(payload):
++        handler_calls.append(payload)
++        return payload["n"] * 2
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", fetch)
++
++    first = dispatch.run_task(handler, "idempotent-task")
++    second = dispatch.run_task(handler, "idempotent-task")
++
++    assert first == 42
++    assert second == 42
++    assert handler_calls == [{"n": 21}]
++    assert fetch_calls == ["idempotent-task"]

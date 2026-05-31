@@ -1,0 +1,152 @@
+diff --git a/src/config.py b/src/config.py
+index 3601cc9..4cc8e0b 100644
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,93 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML support and deprecated INI fallback."""
+ import configparser
++import warnings
+ from pathlib import Path
++from typing import Optional
+ 
+-def load_config(path: str = "config.ini") -> dict:
++try:
++    import tomllib
++except ModuleNotFoundError:  # pragma: no cover - only used on Python < 3.11
++    tomllib = None
++
++
++def _load_ini(path: Path) -> dict:
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    if tomllib is None:
++        return _load_simple_toml(path)
++
++    with path.open("rb") as handle:
++        return tomllib.load(handle)
++
++
++def _load_simple_toml(path: Path) -> dict:
++    """Parse the small TOML subset supported by this config file on py<3.11."""
++    config: dict = {}
++    current_section: Optional[dict] = None
++
++    for raw_line in path.read_text().splitlines():
++        line = raw_line.strip()
++        if not line or line.startswith("#"):
++            continue
++        if line.startswith("[") and line.endswith("]"):
++            section = line[1:-1].strip()
++            current_section = config.setdefault(section, {})
++            continue
++        if current_section is None or "=" not in line:
++            raise ValueError(f"Unsupported TOML line: {raw_line}")
++
++        key, raw_value = line.split("=", 1)
++        current_section[key.strip()] = _parse_simple_toml_value(raw_value.strip())
++
++    return config
++
++
++def _parse_simple_toml_value(raw_value: str):
++    if len(raw_value) >= 2 and raw_value[0] == raw_value[-1] == '"':
++        return raw_value[1:-1]
++    try:
++        return int(raw_value)
++    except ValueError:
++        return raw_value
++
++
++def load_config(path: Optional[str] = None) -> dict:
++    """Load configuration from TOML, with INI as a deprecated fallback.
++
++    By default, prefer ``config.toml`` in the current directory. If it is not
++    present, load ``config.ini`` for one release and emit a DeprecationWarning.
++    An explicit path loads that file directly, warning when the file is INI.
++    """
++    if path is None:
++        toml_path = Path("config.toml")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++
++        ini_path = Path("config.ini")
++        if ini_path.exists():
++            warnings.warn(
++                "config.ini is deprecated; migrate configuration to config.toml",
++                DeprecationWarning,
++                stacklevel=2,
++            )
++            return _load_ini(ini_path)
++
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++
++    if config_path.suffix.lower() == ".toml":
++        return _load_toml(config_path)
++
++    warnings.warn(
++        "config.ini is deprecated; migrate configuration to config.toml",
++        DeprecationWarning,
++        stacklevel=2,
++    )
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353..dddfcb7 100644
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -8,3 +8,45 @@ def test_loads_ini(tmp_path, monkeypatch):
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_when_only_toml_present(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "5.6.7.8"\nport = 9001\n'
++        '[db]\nurl = "sqlite:///tmp.db"\npool_size = 7\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "5.6.7.8"
++    assert cfg["server"]["port"] == 9001
++    assert cfg["db"]["url"] == "sqlite:///tmp.db"
++    assert cfg["db"]["pool_size"] == 7
++
++
++def test_loads_ini_with_deprecation_warning_when_toml_missing(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    import pytest
++    with pytest.warns(DeprecationWarning, match="toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++    assert cfg["server"]["port"] == "9000"
++
++
++def test_prefers_toml_when_toml_and_ini_present(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = ini-host\nport = 9000\n")
++    toml = tmp_path / "config.toml"
++    toml.write_text('[server]\nhost = "toml-host"\nport = 9001\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml-host"
++    assert cfg["server"]["port"] == 9001

@@ -1,0 +1,556 @@
+Reading additional input from stdin...
+OpenAI Codex v0.125.0 (research preview)
+--------
+workdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: none
+reasoning summaries: none
+session id: 019e7972-ef46-7451-95b7-789861a4cc27
+--------
+user
+You are Codex running inside this repository. The text below is the exact Fabric-enhanced prompt/context. Do not treat any statement like 'I cannot edit/run commands' as applying to you; you can inspect files, edit files, and run verification in this repo. Complete the underlying task and report verification.
+
+1. Search `src/` for `print(` occurrences and identify non-`__init__.py` files to edit.
+2. Patch only those `src/` files to add module-level logging setup where needed and replace `print(...)` with `logger.info(...)`.
+3. Run the specified verification commands.
+4. Report pass/fail for each DONE WHEN condition.I’m sorry, but I can’t apply edits or run commands in this environment because no repository/tool access is available in this chat.
+
+codex
+I’ll inspect `src/` first to find the exact print sites and keep the patch limited to non-`__init__.py` files.
+exec
+/bin/zsh -lc "rg -n \"print\\(\" src" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+src/reporter.py:2:    print(f"reporter: summarizing {len(rows)} rows")
+src/reporter.py:4:    print("reporter: done")
+src/ingest.py:2:    print(f"ingest: opening {path}")
+src/ingest.py:5:    print(f"ingest: read {len(rows)} rows")
+
+codex
+The only non-`__init__.py` files with `print(` are `src/reporter.py` and `src/ingest.py`. I’m reading them now so the logging setup matches the existing module shape.
+exec
+/bin/zsh -lc "sed -n '1,160p' src/reporter.py" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+
+def report(rows):
+    logger.info(f"reporter: summarizing {len(rows)} rows")
+    summary = {"n": len(rows)}
+    logger.info("reporter: done")
+    return summary
+
+exec
+/bin/zsh -lc "sed -n '1,160p' src/ingest.py" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+import logging
+
+
+logger = logging.getLogger(__name__)
+
+
+def ingest(path):
+    logger.info(f"ingest: opening {path}")
+    with open(path) as f:
+        rows = f.readlines()
+    logger.info(f"ingest: read {len(rows)} rows")
+    return rows
+
+exec
+/bin/zsh -lc 'rg --files' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+src/__init__.py
+src/reporter.py
+src/ingest.py
+brief.md
+scripts/setup.py
+prompt.txt
+pattern.txt
+
+codex
+Those two files already contain `logging.getLogger(__name__)` and `logger.info(...)`, so I’m checking the task brief for the exact verification commands and DONE WHEN conditions before touching anything.
+exec
+/bin/zsh -lc "sed -n '1,220p' brief.md" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+exec
+/bin/zsh -lc "sed -n '1,220p' prompt.txt" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+replace all `print(...)` calls in `src/` with `logger.info(...)` and add the logger import where missing. don't touch `scripts/`.
+
+ succeeded in 0ms:
+# TASK
+Replace every `print(...)` call in `src/` with `logger.info(...)`. Add `import logging` and `logger = logging.getLogger(__name__)` to each file that has prints but lacks a logger. Do not touch `scripts/`.
+
+# FILES IN SCOPE
+- All files under `src/`
+
+# FORBIDDEN PATHS
+- `scripts/` — any change here is a failure
+- `__init__.py` files (no need to touch them)
+
+# DONE WHEN
+- `rg "print\(" src/` returns no hits
+- `rg "print\(" scripts/` shows the original prints (untouched)
+- Every modified file imports `logging` and defines a module-level `logger`
+- `python -c "import src.ingest, src.reporter"` succeeds (modules still load)
+- `git diff --quiet scripts/`
+
+# VERIFICATION COMMANDS
+```bash
+! rg -q "print\(" src/
+git diff --quiet scripts/
+python -c "import src.ingest, src.reporter"
+```
+
+# CONSTRAINTS
+- Preserve the f-string formatting; just swap the call.
+- Do not change function signatures or return values.
+
+exec
+/bin/zsh -lc "sed -n '1,120p' pattern.txt" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+codex_brief
+
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+codex
+The DONE WHEN list is explicit. Since the files already look converted, I’m running the verification commands exactly and also checking `scripts/` still has its original prints.
+exec
+/bin/zsh -lc '! rg -q "print'"\\(\" src/" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+exec
+/bin/zsh -lc "rg -n \"print\\(\" scripts/" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ exited 1 in 0ms:
+ succeeded in 0ms:
+scripts/setup.py:2:print("setup: bootstrapping dev environment")
+scripts/setup.py:3:print("setup: ok")
+
+exec
+/bin/zsh -lc 'git diff --quiet scripts/' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'python -c "import src.ingest, src.reporter"' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+codex
+The `scripts/` and import checks pass. The negated `rg` command needs Bash semantics from the brief, so I’m rerunning that command under `bash -lc` and checking the final diff state.
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+exec
+/bin/zsh -lc 'git diff -- src/' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+exec
+/bin/zsh -lc "bash -lc '"'! rg -q "print'"\\\\(\" src/'" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+?? src/__pycache__/
+
+ succeeded in 0ms:
+ exited 1 in 0ms:
+exec
+/bin/zsh -lc "rg -n \"print\\(\" src/" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+exec
+/bin/zsh -lc "rg -q \"print\\(\" src/; printf 'rg_exit=%s\\n' "'$?' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+src/reporter.py:2:    print(f"reporter: summarizing {len(rows)} rows")
+src/reporter.py:4:    print("reporter: done")
+src/ingest.py:2:    print(f"ingest: opening {path}")
+src/ingest.py:5:    print(f"ingest: read {len(rows)} rows")
+
+ succeeded in 0ms:
+rg_exit=0
+
+exec
+/bin/zsh -lc "bash -lc 'rg -q \"print\\\\(\" src/; printf \"bash_rg_exit=%s\\\\n\" "'$?; ! rg -q "print'"\\\\(\" src/; printf \"bash_negated_exit=%s\\\\n\" "'$?'"'" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+bash_rg_exit=0
+bash_negated_exit=1
+
+codex
+`rg` is still finding the original `print(...)` calls in `src/`; the earlier read output did not reflect the current files. I’m patching only `src/ingest.py` and `src/reporter.py` now.
+exec
+/bin/zsh -lc 'nl -ba src/reporter.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+     1	def report(rows):
+     2	    print(f"reporter: summarizing {len(rows)} rows")
+     3	    summary = {"n": len(rows)}
+     4	    print("reporter: done")
+     5	    return summary
+
+exec
+/bin/zsh -lc 'nl -ba src/ingest.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+     1	def ingest(path):
+     2	    print(f"ingest: opening {path}")
+     3	    with open(path) as f:
+     4	        rows = f.readlines()
+     5	    print(f"ingest: read {len(rows)} rows")
+     6	    return rows
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger/src/ingest.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger/src/reporter.py
+diff --git a/src/ingest.py b/src/ingest.py
+index 565b375eb08ecb5edd0b379207b5b04f4ca937a2..6cc93ebd9d995349ade8809fac1cdd2c2906d2ce
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+diff --git a/src/reporter.py b/src/reporter.py
+index 7d8140b96e39272df54b810d87dcf14718e03b6e..94a09246615cf9fad556d813d428655e2ba8737b
+--- a/src/reporter.py
++++ b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+
+diff --git a/src/ingest.py b/src/ingest.py
+index 565b375eb08ecb5edd0b379207b5b04f4ca937a2..6cc93ebd9d995349ade8809fac1cdd2c2906d2ce
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+diff --git a/src/reporter.py b/src/reporter.py
+index 7d8140b96e39272df54b810d87dcf14718e03b6e..94a09246615cf9fad556d813d428655e2ba8737b
+--- a/src/reporter.py
++++ b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+
+codex
+The two scoped source files are patched. I’m removing the import-generated `__pycache__` noise, then I’ll run the verification commands from the brief.
+exec
+/bin/zsh -lc 'rm -rf src/__pycache__' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+diff --git a/src/ingest.py b/src/ingest.py
+index 565b375eb08ecb5edd0b379207b5b04f4ca937a2..6cc93ebd9d995349ade8809fac1cdd2c2906d2ce
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+diff --git a/src/reporter.py b/src/reporter.py
+index 7d8140b96e39272df54b810d87dcf14718e03b6e..94a09246615cf9fad556d813d428655e2ba8737b
+--- a/src/reporter.py
++++ b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+
+exec
+/bin/zsh -lc "rg -n \"print\\(\" scripts/" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+scripts/setup.py:2:print("setup: bootstrapping dev environment")
+scripts/setup.py:3:print("setup: ok")
+
+exec
+/bin/zsh -lc "bash -lc '"'! rg -q "print'"\\\\(\" src/'" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'git diff --quiet scripts/' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'python -c "import src.ingest, src.reporter"' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+diff --git a/src/ingest.py b/src/ingest.py
+index 565b375eb08ecb5edd0b379207b5b04f4ca937a2..6cc93ebd9d995349ade8809fac1cdd2c2906d2ce
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+diff --git a/src/reporter.py b/src/reporter.py
+index 7d8140b96e39272df54b810d87dcf14718e03b6e..94a09246615cf9fad556d813d428655e2ba8737b
+--- a/src/reporter.py
++++ b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+
+exec
+/bin/zsh -lc 'git diff -- src/ingest.py src/reporter.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+ M src/ingest.py
+ M src/reporter.py
+?? src/__pycache__/
+
+ succeeded in 0ms:
+diff --git a/src/ingest.py b/src/ingest.py
+index 565b375..6cc93eb 100644
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+diff --git a/src/reporter.py b/src/reporter.py
+index 7d8140b..94a0924 100644
+--- a/src/reporter.py
++++ b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+
+diff --git a/src/ingest.py b/src/ingest.py
+index 565b375eb08ecb5edd0b379207b5b04f4ca937a2..6cc93ebd9d995349ade8809fac1cdd2c2906d2ce
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+diff --git a/src/reporter.py b/src/reporter.py
+index 7d8140b96e39272df54b810d87dcf14718e03b6e..94a09246615cf9fad556d813d428655e2ba8737b
+--- a/src/reporter.py
++++ b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+
+codex
+Verification passed, and the import check recreated `src/__pycache__/`. I’m clearing that generated directory so the working tree only contains the intended source edits.
+exec
+/bin/zsh -lc 'rm -rf src/__pycache__ && git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task07_print_to_logger
+ succeeded in 0ms:
+ M src/ingest.py
+ M src/reporter.py
+
+diff --git a/src/ingest.py b/src/ingest.py
+index 565b375eb08ecb5edd0b379207b5b04f4ca937a2..6cc93ebd9d995349ade8809fac1cdd2c2906d2ce
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+diff --git a/src/reporter.py b/src/reporter.py
+index 7d8140b96e39272df54b810d87dcf14718e03b6e..94a09246615cf9fad556d813d428655e2ba8737b
+--- a/src/reporter.py
++++ b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+
+codex
+Implemented the scoped print-to-logger conversion in [src/ingest.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task07_print_to_logger/src/ingest.py:1) and [src/reporter.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task07_print_to_logger/src/reporter.py:1). No `scripts/` files were changed.
+
+DONE WHEN checks:
+- PASS: `rg "print\(" src/` returns no hits via `bash -lc '! rg -q "print\\(" src/'`
+- PASS: `rg "print\(" scripts/` still shows the original prints in `scripts/setup.py`
+- PASS: modified files import `logging` and define module-level `logger`
+- PASS: `python -c "import src.ingest, src.reporter"`
+- PASS: `git diff --quiet scripts/`
+diff --git a/src/ingest.py b/src/ingest.py
+index 565b375eb08ecb5edd0b379207b5b04f4ca937a2..6cc93ebd9d995349ade8809fac1cdd2c2906d2ce
+--- a/src/ingest.py
++++ b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+diff --git a/src/reporter.py b/src/reporter.py
+index 7d8140b96e39272df54b810d87dcf14718e03b6e..94a09246615cf9fad556d813d428655e2ba8737b
+--- a/src/reporter.py
++++ b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+
+2026-05-30T15:15:13.107229Z ERROR codex_core::session: failed to record rollout items: thread 019e7972-ef46-7451-95b7-789861a4cc27 not found
+tokens used
+26,216
+Implemented the scoped print-to-logger conversion in [src/ingest.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task07_print_to_logger/src/ingest.py:1) and [src/reporter.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task07_print_to_logger/src/reporter.py:1). No `scripts/` files were changed.
+
+DONE WHEN checks:
+- PASS: `rg "print\(" src/` returns no hits via `bash -lc '! rg -q "print\\(" src/'`
+- PASS: `rg "print\(" scripts/` still shows the original prints in `scripts/setup.py`
+- PASS: modified files import `logging` and define module-level `logger`
+- PASS: `python -c "import src.ingest, src.reporter"`
+- PASS: `git diff --quiet scripts/`

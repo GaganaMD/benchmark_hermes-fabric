@@ -1,0 +1,919 @@
+# Background Worker Reliability Review
+
+## Assumptions
+
+The provided input does not include actual worker code, queue configuration, framework details, logs, or tests. Because of that, I cannot safely make code changes yet.
+
+Assumptions for the recommendations below:
+
+- The system uses a queue-backed background worker model such as Sidekiq, Celery, BullMQ, Resque, RQ, Laravel queues, Hangfire, SQS workers, Kafka consumers, or a similar framework.
+- Jobs may be delivered more than once.
+- Some failures are transient and should be retried.
+- Some failures are permanent and should eventually be dead-lettered.
+- Worker processes may be killed during deploys, autoscaling, node shutdown, or incidents.
+- Production reliability is more important than maximizing throughput.
+
+Per your constraints:
+
+1. **Plan before editing**
+   1. Inspect worker entrypoints, job definitions, queue config, retry config, timeout handling, and tests.
+   2. Identify scoped files that are safe to modify.
+   3. Patch only worker reliability issues in scoped files.
+   4. Run verification commands.
+   5. Report pass/fail against done criteria.
+
+2. **Edits**
+   - No edits were made because no repository files, file paths, or code were provided.
+   - Files in scope are unclear, so I am stopping before modification as required.
+
+3. **Verification**
+   - No verification commands were run because there is no codebase available in this prompt.
+
+4. **Done status**
+   - Not done. Implementation and tests require the actual code/configuration.
+
+---
+
+## Findings
+
+### Critical Production Risks
+
+Without seeing the implementation, these are the most common causes of flaky background workers and should be checked first.
+
+#### 1. Jobs are not idempotent
+
+Most production queues provide **at-least-once delivery**, not exactly-once delivery. A job can run more than once if:
+
+- The worker crashes after doing the side effect but before acknowledging the job.
+- The queue visibility timeout expires while the job is still running.
+- The job is retried after a network timeout.
+- A deploy interrupts processing.
+- The broker redelivers an unacknowledged message.
+
+Risk:
+
+- Duplicate emails, payments, webhooks, notifications, exports, database mutations, etc.
+
+Recommended fix:
+
+- Add idempotency keys.
+- Store job execution state in durable storage.
+- Use unique constraints or atomic compare-and-set updates.
+- Make external side effects safe to retry.
+
+Example pattern:
+
+```text
+job_id / business_id / idempotency_key
+    -> acquire idempotency record
+    -> if already completed, no-op
+    -> process safely
+    -> mark completed
+```
+
+#### 2. Missing or incorrect retry policy
+
+Common problems:
+
+- Infinite retries for permanent failures.
+- No retries for transient failures.
+- Immediate retries causing retry storms.
+- Retrying non-idempotent operations.
+- Same retry delay for all failures.
+- No dead-letter queue.
+
+Recommended fix:
+
+- Use bounded retries.
+- Use exponential backoff with jitter.
+- Classify errors as transient vs permanent.
+- Send exhausted jobs to a dead-letter queue.
+- Alert on dead-letter growth.
+
+Suggested default:
+
+```text
+max_attempts: 5
+backoff: exponential
+base_delay: 30s
+max_delay: 15m
+jitter: enabled
+dead_letter_after_exhaustion: true
+```
+
+#### 3. No job timeout / stuck job protection
+
+Jobs that hang can consume workers forever.
+
+Common causes:
+
+- HTTP requests without timeout.
+- DB queries without statement timeout.
+- Deadlocked locks.
+- Blocking SDK calls.
+- Waiting on unavailable services.
+
+Recommended fix:
+
+- Set a per-job execution timeout.
+- Set timeouts on all outbound I/O.
+- Ensure queue visibility timeout is longer than the max job runtime.
+- Emit metrics for job duration and timeout count.
+
+Important relationship:
+
+```text
+visibility_timeout > job_timeout + graceful_shutdown_timeout
+```
+
+If visibility timeout is too short, the same job can be processed concurrently by multiple workers.
+
+#### 4. Unsafe acknowledgement behavior
+
+Risk depends on framework, but common bugs are:
+
+- Acknowledging before side effects complete.
+- Not acknowledging successful jobs.
+- Swallowing exceptions so failed jobs are acknowledged as successful.
+- Manually deleting jobs from the queue before durable completion.
+
+Recommended fix:
+
+- Acknowledge only after successful completion.
+- Let exceptions propagate to the worker framework so retries happen.
+- Only catch errors to add context/logging/classification, then re-raise if retry is desired.
+
+#### 5. No graceful shutdown
+
+During deploys or autoscaling, workers may be terminated while processing.
+
+Recommended fix:
+
+- Stop accepting new jobs on SIGTERM/SIGINT.
+- Let in-flight jobs finish up to a shutdown deadline.
+- Requeue or allow broker redelivery for unfinished jobs.
+- Ensure shutdown timeout is less than orchestrator termination grace period.
+
+Example lifecycle:
+
+```text
+SIGTERM received
+-> stop polling for new jobs
+-> wait for active jobs to finish
+-> after grace period, exit non-zero or let broker redeliver unacked jobs
+```
+
+#### 6. Unbounded concurrency
+
+If workers process too many jobs concurrently, they may overload:
+
+- Database pools
+- Redis
+- External APIs
+- CPU
+- Memory
+- File descriptors
+
+Recommended fix:
+
+- Set explicit concurrency limits.
+- Match worker concurrency to DB pool size.
+- Use separate queues for slow/heavy jobs.
+- Apply rate limits for external APIs.
+- Avoid one queue starving another.
+
+---
+
+### Important Reliability Improvements
+
+#### 1. Structured logging
+
+Each job log should include:
+
+```json
+{
+  "event": "job_started",
+  "job_name": "SendInvoiceEmail",
+  "job_id": "abc123",
+  "queue": "emails",
+  "attempt": 2,
+  "max_attempts": 5,
+  "idempotency_key": "invoice:123:email",
+  "correlation_id": "req-789"
+}
+```
+
+Recommended events:
+
+- `job_enqueued`
+- `job_started`
+- `job_succeeded`
+- `job_failed`
+- `job_retry_scheduled`
+- `job_dead_lettered`
+- `job_timeout`
+- `job_duplicate_skipped`
+- `worker_shutdown_started`
+- `worker_shutdown_completed`
+
+#### 2. Metrics
+
+Useful metric names:
+
+```text
+worker_jobs_started_total{job,queue}
+worker_jobs_succeeded_total{job,queue}
+worker_jobs_failed_total{job,queue,error_type}
+worker_jobs_retried_total{job,queue}
+worker_jobs_dead_lettered_total{job,queue}
+worker_job_duration_seconds{job,queue}
+worker_job_queue_latency_seconds{job,queue}
+worker_job_attempts{job,queue}
+worker_active_jobs{worker,queue}
+worker_queue_depth{queue}
+worker_shutdowns_total{reason}
+worker_job_timeouts_total{job,queue}
+worker_duplicate_jobs_skipped_total{job,queue}
+```
+
+#### 3. Error classification
+
+Separate permanent and transient failures.
+
+Examples of transient failures:
+
+- Network timeout
+- HTTP 429
+- HTTP 503
+- DB connection failure
+- Lock timeout
+- Temporary broker failure
+
+Examples of permanent failures:
+
+- Invalid payload
+- Missing required entity that should exist
+- Schema validation failure
+- Authorization/configuration error
+- Unsupported job version
+
+Behavior:
+
+```text
+transient error -> retry with backoff
+permanent error -> do not retry, dead-letter or mark failed
+unknown error -> retry bounded number of times, then dead-letter
+```
+
+#### 4. Queue separation
+
+Recommended queues:
+
+```text
+critical
+default
+slow
+bulk
+external_api
+dead_letter
+```
+
+This prevents slow batch jobs from starving urgent jobs.
+
+#### 5. Payload validation and versioning
+
+Jobs should validate payloads before processing.
+
+Recommended fields:
+
+```json
+{
+  "job_id": "uuid",
+  "job_type": "send_email",
+  "schema_version": 1,
+  "idempotency_key": "email:user:123:welcome",
+  "created_at": "2026-05-30T12:00:00Z",
+  "trace_id": "..."
+}
+```
+
+Reject or dead-letter unsupported versions instead of failing unpredictably.
+
+---
+
+### Nice-to-Have Cleanup
+
+- Add dashboards for queue depth, age, retry rate, and dead-letter count.
+- Add periodic dead-letter replay tooling.
+- Add worker health checks.
+- Add job ownership documentation.
+- Add runbook links to alerts.
+- Add sampling for verbose payload logs to avoid leaking sensitive data.
+- Add lints preventing outbound HTTP calls without timeout.
+
+---
+
+## Recommended Fixes
+
+### Retry and Backoff Strategy
+
+Recommended default policy:
+
+```yaml
+retries:
+  max_attempts: 5
+  backoff:
+    type: exponential
+    initial_delay_seconds: 30
+    multiplier: 2
+    max_delay_seconds: 900
+    jitter: true
+  retry_on:
+    - timeout
+    - connection_error
+    - rate_limit
+    - 5xx
+  do_not_retry_on:
+    - validation_error
+    - invalid_payload
+    - not_authorized
+    - unsupported_schema_version
+  dead_letter:
+    enabled: true
+    after_attempts: 5
+```
+
+### Timeout Handling
+
+Recommended defaults:
+
+```yaml
+timeouts:
+  job_timeout_seconds: 300
+  graceful_shutdown_seconds: 30
+  queue_visibility_timeout_seconds: 420
+  outbound_http_timeout_seconds: 10
+  database_statement_timeout_seconds: 30
+```
+
+Rules:
+
+- Every outbound network call must have a timeout.
+- Job timeout must be less than queue visibility timeout.
+- Shutdown grace must be accounted for.
+- Long jobs should checkpoint progress or be split into smaller jobs.
+
+### Idempotency Safeguards
+
+For jobs with side effects:
+
+```text
+idempotency_key = stable business key
+```
+
+Examples:
+
+```text
+send email: email:user_id:template:event_id
+charge payment: payment:invoice_id
+generate report: report:account_id:date_range
+sync webhook: webhook:event_id:destination_id
+```
+
+Storage table example:
+
+```sql
+CREATE TABLE job_idempotency_keys (
+    idempotency_key TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    job_name TEXT NOT NULL,
+    started_at TIMESTAMP NOT NULL,
+    completed_at TIMESTAMP NULL,
+    result JSONB NULL,
+    error TEXT NULL
+);
+```
+
+Recommended states:
+
+```text
+started
+completed
+failed
+```
+
+Use atomic insert:
+
+```sql
+INSERT INTO job_idempotency_keys (...)
+VALUES (...)
+ON CONFLICT DO NOTHING;
+```
+
+If insert fails and status is `completed`, skip safely.
+
+### Dead-Letter Behavior
+
+Dead-letter records should include:
+
+```json
+{
+  "job_id": "abc123",
+  "job_name": "SendInvoiceEmail",
+  "queue": "emails",
+  "payload": {},
+  "attempts": 5,
+  "last_error_type": "HttpTimeout",
+  "last_error_message": "request timed out",
+  "first_failed_at": "...",
+  "last_failed_at": "...",
+  "trace_id": "..."
+}
+```
+
+Operational requirements:
+
+- Alert when DLQ depth > 0 for critical jobs.
+- Alert when DLQ growth rate increases.
+- Provide manual replay with safety checks.
+- Preserve original payload and metadata.
+
+### Graceful Shutdown
+
+Expected behavior:
+
+```text
+on shutdown signal:
+  stop fetching new jobs
+  finish active jobs until deadline
+  emit shutdown metrics
+  exit cleanly if all jobs completed
+  otherwise exit and rely on broker redelivery
+```
+
+### Concurrency Limits
+
+Recommended:
+
+```yaml
+worker:
+  concurrency: 4
+  max_jobs_per_process: 1000
+  queues:
+    critical:
+      concurrency: 2
+    default:
+      concurrency: 4
+    slow:
+      concurrency: 1
+```
+
+Size based on:
+
+```text
+min(database_pool_size - app_reserved_connections, external_api_rate_limit, CPU/memory constraints)
+```
+
+---
+
+## Code Changes
+
+No code changes were applied because the prompt did not include actual code or file paths.
+
+If you provide the worker files, I can patch them directly. The most likely changes would be scoped to files such as:
+
+```text
+workers/
+jobs/
+queue/
+config/worker.*
+config/sidekiq.yml
+celery.py
+tasks.py
+worker.js
+queue.ts
+```
+
+A generic before/after pattern follows.
+
+### Generic Worker Wrapper Pattern
+
+```python
+import logging
+import random
+import time
+from contextlib import contextmanager
+
+logger = logging.getLogger(__name__)
+
+
+class PermanentJobError(Exception):
+    pass
+
+
+class TransientJobError(Exception):
+    pass
+
+
+def calculate_backoff_seconds(attempt: int, base: int = 30, maximum: int = 900) -> float:
+    delay = min(maximum, base * (2 ** max(0, attempt - 1)))
+    jitter = random.uniform(0, delay * 0.2)
+    return delay + jitter
+
+
+@contextmanager
+def job_observability(job_name, job_id, queue, attempt, idempotency_key=None):
+    start = time.monotonic()
+
+    logger.info(
+        "job_started",
+        extra={
+            "job_name": job_name,
+            "job_id": job_id,
+            "queue": queue,
+            "attempt": attempt,
+            "idempotency_key": idempotency_key,
+        },
+    )
+
+    try:
+        yield
+    except Exception:
+        duration = time.monotonic() - start
+        logger.exception(
+            "job_failed",
+            extra={
+                "job_name": job_name,
+                "job_id": job_id,
+                "queue": queue,
+                "attempt": attempt,
+                "duration_seconds": duration,
+                "idempotency_key": idempotency_key,
+            },
+        )
+        raise
+    else:
+        duration = time.monotonic() - start
+        logger.info(
+            "job_succeeded",
+            extra={
+                "job_name": job_name,
+                "job_id": job_id,
+                "queue": queue,
+                "attempt": attempt,
+                "duration_seconds": duration,
+                "idempotency_key": idempotency_key,
+            },
+        )
+```
+
+### Generic Idempotency Pattern
+
+```python
+def process_job(job):
+    idempotency_key = job["idempotency_key"]
+
+    acquired = idempotency_store.try_start(
+        key=idempotency_key,
+        job_name=job["type"],
+        job_id=job["id"],
+    )
+
+    if not acquired:
+        if idempotency_store.is_completed(idempotency_key):
+            logger.info(
+                "job_duplicate_skipped",
+                extra={
+                    "job_id": job["id"],
+                    "job_name": job["type"],
+                    "idempotency_key": idempotency_key,
+                },
+            )
+            return
+
+        raise TransientJobError("job with same idempotency key is already in progress")
+
+    try:
+        perform_side_effect(job)
+    except PermanentJobError as exc:
+        idempotency_store.mark_failed(idempotency_key, str(exc))
+        raise
+    except Exception:
+        idempotency_store.release_or_mark_retryable(idempotency_key)
+        raise
+    else:
+        idempotency_store.mark_completed(idempotency_key)
+```
+
+This is illustrative only. I would need the actual framework and storage layer before applying a real patch.
+
+---
+
+## Tests
+
+No tests were added because no codebase was provided.
+
+Recommended test coverage:
+
+### 1. Successful Job Execution
+
+Verify:
+
+- Job runs once.
+- Side effect occurs.
+- Job is acknowledged.
+- Success metric/log emitted.
+- Idempotency key marked complete.
+
+Example assertion set:
+
+```text
+given valid job
+when worker processes job
+then handler is called
+and job is acknowledged
+and worker_jobs_succeeded_total increments
+```
+
+### 2. Transient Failure and Retry
+
+Verify:
+
+- Transient exception does not acknowledge as success.
+- Retry is scheduled.
+- Backoff is applied.
+- Attempt count increases.
+- Failure is logged.
+
+```text
+given job handler raises timeout
+when worker processes job
+then job is retried
+and retry delay uses exponential backoff with jitter
+```
+
+### 3. Permanent Failure and Dead-Letter Handling
+
+Verify:
+
+- Invalid payload is not retried indefinitely.
+- Job goes to DLQ.
+- DLQ payload includes original metadata.
+- Alertable metric increments.
+
+```text
+given job payload is invalid
+when worker processes job
+then job is dead-lettered
+and worker_jobs_dead_lettered_total increments
+```
+
+### 4. Duplicate Job Delivery / Idempotency
+
+Verify:
+
+- Same idempotency key does not perform side effect twice.
+- Duplicate completed job exits successfully.
+- Concurrent duplicate does not race.
+
+```text
+given two jobs with same idempotency key
+when both are processed
+then side effect executes once
+and duplicate is logged as skipped
+```
+
+### 5. Worker Shutdown While Processing
+
+Verify:
+
+- Worker stops accepting new jobs.
+- In-flight job finishes if within grace period.
+- Unfinished job is not falsely acknowledged.
+- Shutdown metric emitted.
+
+```text
+given worker receives SIGTERM during job
+when job finishes before shutdown deadline
+then job succeeds
+and worker exits cleanly
+```
+
+### 6. Timeout or Stuck Job Behavior
+
+Verify:
+
+- Job exceeding timeout is interrupted or failed.
+- Timeout is treated as retryable if appropriate.
+- Worker does not hang indefinitely.
+
+```text
+given job blocks longer than max runtime
+when timeout expires
+then job fails with timeout
+and retry is scheduled
+```
+
+---
+
+## Observability
+
+### Logs
+
+Use structured logs with consistent fields.
+
+Recommended fields:
+
+```json
+{
+  "timestamp": "2026-05-30T12:00:00Z",
+  "level": "info",
+  "event": "job_succeeded",
+  "job_id": "uuid",
+  "job_name": "SendEmail",
+  "queue": "emails",
+  "attempt": 1,
+  "max_attempts": 5,
+  "duration_ms": 238,
+  "idempotency_key": "email:user:123:welcome",
+  "trace_id": "trace-abc",
+  "correlation_id": "req-xyz",
+  "worker_id": "worker-1",
+  "host": "host-a"
+}
+```
+
+For failures:
+
+```json
+{
+  "event": "job_failed",
+  "job_id": "uuid",
+  "job_name": "SendEmail",
+  "queue": "emails",
+  "attempt": 3,
+  "max_attempts": 5,
+  "error_type": "HttpTimeout",
+  "error_message": "upstream request timed out",
+  "retryable": true,
+  "next_retry_delay_seconds": 120
+}
+```
+
+Avoid logging sensitive payload fields.
+
+### Metrics
+
+Recommended metrics:
+
+```text
+worker_jobs_enqueued_total
+worker_jobs_started_total
+worker_jobs_succeeded_total
+worker_jobs_failed_total
+worker_jobs_retried_total
+worker_jobs_dead_lettered_total
+worker_job_duration_seconds
+worker_job_queue_latency_seconds
+worker_job_attempts
+worker_active_jobs
+worker_queue_depth
+worker_oldest_job_age_seconds
+worker_job_timeouts_total
+worker_duplicate_jobs_skipped_total
+worker_shutdowns_total
+```
+
+Useful labels:
+
+```text
+job
+queue
+worker
+environment
+error_type
+retryable
+```
+
+Avoid high-cardinality labels such as raw `job_id`, user ID, email, or idempotency key.
+
+### Alerts
+
+Recommended alerts:
+
+```text
+DLQ depth > 0 for critical queues for 5 minutes
+DLQ depth increasing for any queue
+oldest job age > SLO threshold
+queue depth > expected capacity for 10 minutes
+job failure rate > baseline
+retry rate spike
+worker heartbeats missing
+job timeout count > 0
+active jobs stuck for longer than max expected duration
+```
+
+### Dashboard Panels
+
+Recommended dashboard:
+
+- Queue depth by queue.
+- Oldest job age by queue.
+- Job success/failure/retry rate.
+- P50/P95/P99 job duration.
+- Dead-letter count.
+- Worker process count.
+- Active jobs.
+- Timeout count.
+- External dependency errors by job.
+
+---
+
+## Operational Runbook Notes
+
+### When DLQ Has Jobs
+
+1. Identify affected job type and queue.
+2. Inspect last error type and error message.
+3. Determine whether failure is transient or permanent.
+4. Verify whether replay is idempotent.
+5. Fix root cause if needed.
+6. Replay in small batches.
+7. Monitor retry rate, success rate, and downstream systems.
+
+### When Queue Depth Grows
+
+1. Check worker process count.
+2. Check deploys/autoscaling events.
+3. Check DB/API latency.
+4. Check retry storm indicators.
+5. Check whether one slow job type is starving the queue.
+6. Scale workers only if downstream dependencies can handle the load.
+7. Consider pausing bulk queues to preserve critical queue capacity.
+
+### When Jobs Run More Than Once
+
+1. Confirm queue delivery semantics.
+2. Check visibility timeout vs job duration.
+3. Check worker crashes or deploy interruptions.
+4. Verify idempotency enforcement.
+5. Look for early acknowledgement or swallowed exceptions.
+6. Add deduplication/idempotency if missing.
+
+### When Jobs Disappear
+
+1. Check whether exceptions are swallowed.
+2. Check whether jobs are acknowledged before completion.
+3. Check DLQ.
+4. Check broker retention settings.
+5. Check framework retry exhaustion behavior.
+6. Verify logs and metrics for the job ID.
+
+### When Jobs Hang
+
+1. Check active job duration.
+2. Capture stack traces if supported.
+3. Check outbound HTTP/database timeouts.
+4. Check lock contention.
+5. Verify job timeout is configured.
+6. Kill/restart workers only if unacknowledged jobs can be safely redelivered.
+
+---
+
+## Follow-Up Questions
+
+To implement concrete patches, please provide:
+
+1. Which background job framework is used?
+   - Celery, Sidekiq, BullMQ, SQS, Kafka, RQ, Resque, Laravel queues, etc.
+
+2. Relevant worker files:
+   - Worker entrypoint.
+   - Job/task definitions.
+   - Queue configuration.
+   - Retry configuration.
+   - Deployment config if worker shutdown behavior is defined there.
+
+3. Current symptoms:
+   - Are jobs duplicated, lost, stuck, slow, or failing?
+   - Any logs/error messages?
+   - Which job types are affected?
+
+4. Queue/broker details:
+   - Redis, RabbitMQ, SQS, Kafka, database queue, etc.
+   - Visibility timeout / ack timeout / message retention settings.
+
+5. Runtime/deployment details:
+   - Kubernetes, systemd, ECS, Heroku, bare VM, etc.
+   - Worker termination grace period.
+   - Worker concurrency.
+
+6. Storage and side effects:
+   - Which jobs send emails, charge payments, call APIs, mutate DB rows, or publish events?
+   - Is there an existing idempotency table or dedupe mechanism?
+
+7. Test framework:
+   - Existing tests directory and command.
+   - Whether tests may be added under `tests/`.
+
+Once you provide the actual files, I can make minimal scoped patches, run verification, and report pass/fail against each done condition.

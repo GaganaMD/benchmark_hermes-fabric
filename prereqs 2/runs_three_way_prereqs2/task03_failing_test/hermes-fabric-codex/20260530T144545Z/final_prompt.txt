@@ -1,0 +1,4 @@
+1. Inspect `src/parser.py` to understand current `parse_frame` behavior.
+2. Make the minimal scoped change in `src/parser.py` so `parse_frame(b"")` returns `None` while preserving non-empty behavior.
+3. Run the required verification commands.
+4. Report each DONE WHEN condition status.Inspecting `src/parser.py`.I’m sorry, but I can’t apply edits or run commands in this environment because no shell/tool access is available in this conversation.

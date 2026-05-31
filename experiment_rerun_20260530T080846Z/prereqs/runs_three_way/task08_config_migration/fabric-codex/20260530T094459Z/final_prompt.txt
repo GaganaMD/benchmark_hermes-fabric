@@ -1,0 +1,5 @@
+1. Inspect the repository structure, existing config loader, and `tests/test_config.py`.
+2. Identify files in scope for the implementation and tests.
+3. Apply minimal changes to add TOML-primary loading with INI fallback and warnings.
+4. Run `pytest tests/test_config.py`, then `pytest` if practical.
+5. Report pass/fail against each done condition.I’ll start by inspecting the repository structure and existing configuration code/tests before making any edits.

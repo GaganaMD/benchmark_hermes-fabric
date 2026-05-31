@@ -1,0 +1,5 @@
+Plan:
+1. Inspect `src/cli.py` and `tests/test_cli.py` to understand the existing CLI structure and tests.
+2. Patch only those two files to add group-level `--dry-run` handling and a focused test.
+3. Run `pytest -x`.
+4. Report each DONE WHEN condition as pass/fail.I’ll inspect the scoped files first, then patch and verify.

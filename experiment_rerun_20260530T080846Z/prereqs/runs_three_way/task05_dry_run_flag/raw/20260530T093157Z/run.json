@@ -1,0 +1,13 @@
+{
+  "task_id": "task05_dry_run_flag",
+  "variant": "raw",
+  "ts": "20260530T093157Z",
+  "total_ms": 45866,
+  "agent_ms": 45866,
+  "fabric_ms": null,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": ""
+}

@@ -1,0 +1,4 @@
+1. Inspect the failing test and related parser implementation to identify the expected behavior.
+2. Edit only the relevant source file(s), avoiding `tests/`.
+3. Run the targeted failing test, then the default verification if applicable.
+4. Report pass/fail for the done condition.I need access to the repository filesystem to inspect and modify files, but no tools are available in this session. Please provide the relevant source files (especially the parser implementation and `tests/test_parser.py::test_handles_empty`), or enable tool access so I can make the scoped fix and run verification.

@@ -1,0 +1,37 @@
+  ┊ review diff
+a/src/parser.py → b/src/parser.py
+@@ -2,8 +2,9 @@
+ from typing import Optional
+ 
+ def parse_frame(data: bytes) -> Optional[dict]:
+-    # BUG: indexing into empty bytes raises IndexError.
+-    # Spec (per tests): empty input must return None.
++    if not data:
++        return None
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+Done condition: PASS
+
+Root cause:
+parse_frame(b"") indexed data[0], which raises IndexError on empty input. The test expects empty input to return None.
+
+Files changed:
+src/parser.py
+- Added an early empty-input guard:
+  if not data:
+      return None
+
+Tests/verification run:
+1. Targeted failing test:
+   python -m pytest -q tests/test_parser.py::test_handles_empty
+   Result: 1 passed
+
+2. Default verification:
+   python -m pytest -q
+   Result: 2 passed
+
+No tests/ files were edited.
+
+session_id: 20260530_022910_a80043

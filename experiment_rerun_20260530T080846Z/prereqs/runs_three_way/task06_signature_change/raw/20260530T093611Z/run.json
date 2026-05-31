@@ -1,0 +1,13 @@
+{
+  "task_id": "task06_signature_change",
+  "variant": "raw",
+  "ts": "20260530T093611Z",
+  "total_ms": 39785,
+  "agent_ms": 39785,
+  "fabric_ms": null,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": ""
+}

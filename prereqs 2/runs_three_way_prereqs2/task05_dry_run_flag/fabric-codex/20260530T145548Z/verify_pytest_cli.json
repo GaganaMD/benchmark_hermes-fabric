@@ -1,0 +1,14 @@
+{
+  "name": "pytest_cli",
+  "command": [
+    "python3",
+    "-m",
+    "pytest",
+    "tests/test_cli.py",
+    "-q"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 82,
+  "timeout": false,
+  "output": "...                                                                      [100%]\n3 passed in 0.01s\n"
+}

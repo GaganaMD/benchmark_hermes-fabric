@@ -1,0 +1,13 @@
+{
+  "name": "git_diff_scripts",
+  "command": [
+    "git",
+    "diff",
+    "--",
+    "scripts/"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 10,
+  "timeout": false,
+  "output": ""
+}

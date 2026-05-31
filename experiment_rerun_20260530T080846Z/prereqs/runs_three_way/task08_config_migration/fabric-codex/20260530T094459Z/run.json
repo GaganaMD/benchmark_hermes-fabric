@@ -1,0 +1,13 @@
+{
+  "task_id": "task08_config_migration",
+  "variant": "fabric-codex",
+  "ts": "20260530T094459Z",
+  "total_ms": 199805,
+  "agent_ms": 182628,
+  "fabric_ms": 17175,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "1",
+  "fabric_command": "fabric -p improve_prompt | fabric -p codex_brief"
+}

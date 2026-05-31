@@ -1,0 +1,13 @@
+{
+  "task_id": "task09_flaky_workers",
+  "variant": "hermes-fabric-codex",
+  "ts": "20260530T095729Z",
+  "total_ms": 112021,
+  "agent_ms": 96658,
+  "fabric_ms": 15361,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": "fabric -p improve_prompt | fabric -p codex_brief"
+}

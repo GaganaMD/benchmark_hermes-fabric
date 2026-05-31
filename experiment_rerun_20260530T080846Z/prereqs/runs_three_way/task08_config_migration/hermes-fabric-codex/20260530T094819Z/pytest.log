@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+collected 4 items
+
+tests/test_config.py ....                                                [100%]
+
+=============================== warnings summary ===============================
+tests/test_config.py::test_loads_ini
+  /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/tests/test_config.py:8: DeprecationWarning: config.ini is deprecated; migrate configuration to config.toml
+    cfg = load_config()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 4 passed, 1 warning in 0.01s =========================

@@ -1,0 +1,76 @@
+  ┊ review diff
+a/tests/test_parser.py → b/tests/test_parser.py
+@@ -1,4 +1,12 @@
++import pytest
++
+ from src.parser import parse_frame
++
++
++def test_rejects_empty_input():
++    with pytest.raises(ValueError):
++        parse_frame(b"")
++
+ 
+ def test_handles_basic():
+     result = parse_frame(b"\x01hello")
+  ┊ review diff
+a/tests/test_parser.py → b/tests/test_parser.py
+@@ -4,7 +4,7 @@
+ 
+ 
+ def test_rejects_empty_input():
+-    with pytest.raises(ValueError):
++    with pytest.raises(ValueError, match="empty"):
+         parse_frame(b"")
+ 
+ 
+  ┊ review diff
+a/src/parser.py → b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data cannot be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+Completed.
+
+Files changed:
+- src/parser.py
+  - Added early validation before indexing:
+    - `if not data: raise ValueError("frame data cannot be empty")`
+
+- tests/test_parser.py
+  - Added `pytest` import.
+  - Added focused test:
+    - `test_rejects_empty_input`
+    - Asserts `parse_frame(b"")` raises `ValueError` with a message containing `"empty"`.
+
+Verification run:
+- RED check before implementation:
+  - `pytest tests/test_parser.py::test_rejects_empty_input -q`
+  - Result: failed as expected with `IndexError: index out of range`.
+
+- Focused GREEN check:
+  - `pytest tests/test_parser.py::test_rejects_empty_input -q`
+  - Result: `1 passed`
+
+- Required verification:
+  - `pytest -x`
+  - Result: `3 passed in 0.00s`
+
+- Required validation command:
+  - `python -c "from src.parser import parse_frame ..."`
+  - Result: exit code 0
+
+DONE WHEN conditions:
+- `parse_frame(b"")` raises `ValueError` with a non-empty message: DONE
+- New test in `tests/test_parser.py` asserts `ValueError` is raised: DONE
+- All existing tests still pass: DONE
+- `pytest -x` exits 0: DONE
+- Behavior on non-empty input is unchanged: DONE
+
+Recovery behavior:
+- Followed TDD cycle. The new test initially failed because empty input raised `IndexError`; implementation was then updated minimally to raise `ValueError` early. No other files were modified.

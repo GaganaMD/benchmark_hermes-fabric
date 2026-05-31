@@ -1,0 +1,13 @@
+{
+  "task_id": "task03_failing_test",
+  "variant": "hermes-fabric-codex",
+  "ts": "20260530T092905Z",
+  "total_ms": 50364,
+  "agent_ms": 46281,
+  "fabric_ms": 4081,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": "fabric -p codex_brief"
+}

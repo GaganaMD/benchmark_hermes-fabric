@@ -1,0 +1,2912 @@
+OpenAI Codex v0.125.0 (research preview)
+--------
+workdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: none
+reasoning summaries: none
+session id: 019e7846-1cb4-7432-a134-c139f480c291
+--------
+user
+1. Inspect the repository structure, existing config loader, and `tests/test_config.py`.
+2. Identify files in scope for the implementation and tests.
+3. Apply minimal changes to add TOML-primary loading with INI fallback and warnings.
+4. Run `pytest tests/test_config.py`, then `pytest` if practical.
+5. Report pass/fail against each done condition.I’ll start by inspecting the repository structure and existing configuration code/tests before making any edits.
+
+exec
+/bin/zsh -lc 'pwd && rg --files' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+src/__pycache__/__init__.cpython-312.pyc
+src/__pycache__/config.cpython-312.pyc
+src/__init__.py
+src/config.py
+brief.md
+config.ini
+__pycache__/conftest.cpython-312-pytest-9.0.3.pyc
+prompt.txt
+tests/test_config.py
+tests/__pycache__/__init__.cpython-312.pyc
+tests/__pycache__/test_config.cpython-312-pytest-9.0.3.pyc
+tests/__init__.py
+pattern.txt
+conftest.py
+
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+codex
+The repo is small and the work appears centered on `src/config.py`, `config.ini`, and `tests/test_config.py`. I’m reading those plus the task brief now so the changes match the intended migration behavior.
+
+exec
+/bin/zsh -lc "sed -n '1,240p' src/config.py" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+exec
+/bin/zsh -lc "sed -n '1,260p' tests/test_config.py" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+exec
+/bin/zsh -lc "sed -n '1,220p' brief.md" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+exec
+/bin/zsh -lc "sed -n '1,160p' config.ini" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+from pathlib import Path
+from src.config import load_config
+
+def test_loads_ini(tmp_path, monkeypatch):
+    ini = tmp_path / "config.ini"
+    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
+    monkeypatch.chdir(tmp_path)
+    cfg = load_config()
+    assert cfg["server"]["host"] == "1.2.3.4"
+    assert cfg["server"]["port"] == "9000"
+
+ succeeded in 0ms:
+"""Flat INI config loader."""
+import configparser
+from pathlib import Path
+
+def load_config(path: str = "config.ini") -> dict:
+    parser = configparser.ConfigParser()
+    if not Path(path).exists():
+        raise FileNotFoundError(path)
+    parser.read(path)
+    return {section: dict(parser[section]) for section in parser.sections()}
+
+ succeeded in 0ms:
+# TASK
+Migrate config loading from flat `config.ini` to nested `config.toml`. Keep `config.ini` loading as a deprecated fallback for one release. Existing tests must pass unmodified; add new tests for the TOML path.
+
+# FILES IN SCOPE
+- `src/config.py`
+- `tests/test_config.py` (additions only — do not delete or modify existing tests)
+- new file (optional): `tests/test_config_toml.py`
+- new file (optional): example `config.toml` if useful for fixtures
+
+# FORBIDDEN PATHS
+- None, but stay surgical
+
+# DONE WHEN
+- `load_config` prefers `config.toml` when present, falls back to `config.ini`
+- Loading from `config.ini` emits a `DeprecationWarning` mentioning the toml migration
+- Existing `test_loads_ini` still passes unmodified (verify with `git diff`)
+- At least 3 new test cases cover: toml-only, ini-only-emits-warning, both-present-prefers-toml
+- `pytest -x` exits 0
+
+# VERIFICATION COMMANDS
+```bash
+pytest -x
+# existing test should be byte-identical
+git show baseline:tests/test_config.py > /tmp/orig_test_config.py
+diff /tmp/orig_test_config.py <(grep -A 100 "def test_loads_ini" tests/test_config.py | head -10)
+```
+
+# CONSTRAINTS
+- Use stdlib `tomllib` (Python 3.11+). No external TOML library.
+- Schema for `config.toml`:
+  ```toml
+  [server]
+  host = "0.0.0.0"
+  port = 8080
+  [db]
+  url = "sqlite:///app.db"
+  pool_size = 5
+  ```
+
+ succeeded in 0ms:
+[server]
+host = 0.0.0.0
+port = 8080
+
+[db]
+url = sqlite:///app.db
+pool_size = 5
+
+codex
+The brief confirms `load_config()` should switch its default discovery to `config.toml` first, then warn and read `config.ini` only as a deprecated fallback. I’m keeping explicit path handling straightforward: `.toml` parses with `tomllib`, `.ini` keeps the legacy string values and emits the deprecation warning.
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/src/config.py
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+
+codex
+The loader change is in place. Next I’m adding focused tests for the three required migration cases while leaving the existing INI test body intact.
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/tests/test_config.py
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+codex
+Test coverage now includes TOML-only, INI warning fallback, and TOML preference when both files exist. I’m running the targeted config tests first, then the full suite if that passes.
+
+exec
+/bin/zsh -lc 'pytest tests/test_config.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+ exited 2 in 131ms:
+
+==================================== ERRORS ====================================
+____________________ ERROR collecting tests/test_config.py _____________________
+ImportError while importing test module '/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/tests/test_config.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/importlib/__init__.py:127: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+tests/test_config.py:3: in <module>
+    from src.config import load_config
+src/config.py:4: in <module>
+    import tomllib
+E   ModuleNotFoundError: No module named 'tomllib'
+=========================== short test summary info ============================
+ERROR tests/test_config.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.06s ===============================
+
+codex
+The targeted run used system Python 3.9.6 and failed at import because `tomllib` is stdlib only in Python 3.11+. I’m checking available interpreters before changing code, since the task explicitly requires stdlib `tomllib`.
+
+exec
+/bin/zsh -lc 'python --version' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+exec
+/bin/zsh -lc 'python3 --version' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+Python 3.9.6
+
+ succeeded in 0ms:
+Python 3.9.6
+
+exec
+/bin/zsh -lc 'python3.12 --version' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ exited 127 in 0ms:
+zsh:1: command not found: python3.12
+
+exec
+/bin/zsh -lc 'python3.11 --version' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+Python 3.11.15
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+codex
+Python 3.11 is available as `python3.11`, so I’m rerunning with that interpreter to match the stdlib TOML requirement.
+
+exec
+/bin/zsh -lc 'python3.11 -m pytest tests/test_config.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ exited 1 in 0ms:
+/Users/basethesis/.local/bin/python3.11: No module named pytest
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+codex
+`python3.11` is present but does not have `pytest` installed, while the default `pytest` entrypoint is tied to Python 3.9. I’m checking the local toolchain for a project runner or virtualenv before deciding whether code needs a compatibility fallback.
+
+exec
+/bin/zsh -lc 'ls -la' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+exec
+/bin/zsh -lc 'which -a pytest python3.11 pip3.11 uv' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+total 40
+drwxr-xr-x  12 basethesis  staff   384 May 30 01:44 .
+drwxr-xr-x  12 basethesis  staff   384 May 25 03:18 ..
+drwxr-xr-x  13 basethesis  staff   416 May 30 02:45 .git
+drwxr-xr-x   6 basethesis  staff   192 May 25 03:18 .pytest_cache
+drwxr-xr-x   3 basethesis  staff    96 May 25 03:18 __pycache__
+-rw-r--r--   1 basethesis  staff  1345 May 25 03:22 brief.md
+-rw-r--r--   1 basethesis  staff    79 May 25 03:18 config.ini
+-rw-r--r--   1 basethesis  staff    83 May 25 03:18 conftest.py
+-rw-r--r--   1 basethesis  staff    12 May 25 03:18 pattern.txt
+-rw-r--r--   1 basethesis  staff   231 May 25 03:18 prompt.txt
+drwxr-xr-x   5 basethesis  staff   160 May 30 02:44 src
+drwxr-xr-x   5 basethesis  staff   160 May 30 02:44 tests
+
+ succeeded in 0ms:
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/.venv/bin/pytest
+/Users/basethesis/.local/bin/python3.11
+/Users/basethesis/.local/bin/python3.11
+/Users/basethesis/.local/bin/uv
+/Users/basethesis/.local/bin/uv
+
+exec
+/bin/zsh -lc 'rg -n "python_requires|pytest|tomllib|tomli|requires-python" -S .' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+./src/config.py:4:import tomllib
+./src/config.py:21:        return tomllib.load(config_file)
+./brief.md:18:- `pytest -x` exits 0
+./brief.md:22:pytest -x
+./brief.md:29:- Use stdlib `tomllib` (Python 3.11+). No external TOML library.
+./tests/test_config.py:2:import pytest
+./tests/test_config.py:34:    with pytest.warns(DeprecationWarning, match="config.toml"):
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+exec
+/bin/zsh -lc 'head -1 /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/.venv/bin/pytest' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+#!/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/.venv/bin/python3
+
+exec
+/bin/zsh -lc '/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/.venv/bin/python --version' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+Python 3.9.6
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+codex
+The available virtualenv is also Python 3.9, so the plain `pytest` command cannot import `tomllib`. I’m going to verify with a Python 3.11-managed pytest run through `uv`; if that works, the implementation stays aligned with the stated Python 3.11+ constraint.
+
+exec
+/bin/zsh -lc 'uv run --python 3.11 --with pytest pytest tests/test_config.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+ succeeded in 1063ms:
+Installed 5 packages in 28ms
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+collected 4 items
+
+tests/test_config.py ....                                                [100%]
+
+=============================== warnings summary ===============================
+tests/test_config.py::test_loads_ini
+  /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/src/config.py:31: DeprecationWarning: Loading config.ini is deprecated; migrate configuration to config.toml.
+    return _load_ini(ini_path)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 4 passed, 1 warning in 0.01s =========================
+
+codex
+The Python 3.11 targeted test run passed. I’m running the full suite under the same interpreter now; this repo only has the config tests, so it should be quick.
+
+exec
+/bin/zsh -lc 'uv run --python 3.11 --with pytest pytest' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+ succeeded in 369ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+collected 4 items
+
+tests/test_config.py ....                                                [100%]
+
+=============================== warnings summary ===============================
+tests/test_config.py::test_loads_ini
+  /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/src/config.py:31: DeprecationWarning: Loading config.ini is deprecated; migrate configuration to config.toml.
+    return _load_ini(ini_path)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 4 passed, 1 warning in 0.01s =========================
+
+codex
+Full Python 3.11 pytest passed as well. I’m doing the requested diff check against the baseline slice of the original `test_loads_ini` to confirm that test body was not changed.
+
+exec
+/bin/zsh -lc 'git diff -- src/config.py tests/test_config.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+diff --git a/src/config.py b/src/config.py
+index 3601cc9..ad3931e 100644
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
+ 
+-def load_config(path: str = "config.ini") -> dict:
++
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353..46eff2e 100644
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@ def test_loads_ini(tmp_path, monkeypatch):
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+exec
+/bin/zsh -lc 'git show baseline:tests/test_config.py > /tmp/orig_test_config.py && diff /tmp/orig_test_config.py <(grep -A 100 "def test_loads_ini" tests/test_config.py | head -10)' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ exited 1 in 0ms:
+1,3d0
+< from pathlib import Path
+< from src.config import load_config
+< 
+10a8,10
+> 
+> 
+> def test_loads_toml_only(tmp_path, monkeypatch):
+
+exec
+/bin/zsh -lc 'uv run --python 3.11 --with pytest pytest -x' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config.py b/tests/test_config.py
+index f283353bce5bd34d936e25bf6ded972c8cddddf5..46eff2e2f0b8bf2ed465f3c5fa492881c11fddd1
+--- a/tests/test_config.py
++++ b/tests/test_config.py
+@@ -1,4 +1,5 @@
+ from pathlib import Path
++import pytest
+ from src.config import load_config
+ 
+ def test_loads_ini(tmp_path, monkeypatch):
+@@ -8,3 +9,42 @@
+     cfg = load_config()
+     assert cfg["server"]["host"] == "1.2.3.4"
+     assert cfg["server"]["port"] == "9000"
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+ succeeded in 432ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+collected 4 items
+
+tests/test_config.py ....                                                [100%]
+
+=============================== warnings summary ===============================
+tests/test_config.py::test_loads_ini
+  /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/src/config.py:31: DeprecationWarning: Loading config.ini is deprecated; migrate configuration to config.toml.
+    return _load_ini(ini_path)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 4 passed, 1 warning in 0.01s =========================
+
+codex
+The required baseline slice command is stricter than the actual “additions only” edit I made to `tests/test_config.py`. To remove any ambiguity, I’m moving the new tests into `tests/test_config_toml.py` and restoring `tests/test_config.py` byte-for-byte.
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/tests/test_config.py
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/tests/test_config_toml.py
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+codex
+`tests/test_config.py` is back to its original content, and the TOML migration tests live in the optional new test file allowed by the brief. I’m rerunning the requested checks against that final layout.
+
+exec
+/bin/zsh -lc 'diff <(git show baseline:tests/test_config.py) tests/test_config.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'uv run --python 3.11 --with pytest pytest tests/test_config.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+exec
+/bin/zsh -lc 'uv run --python 3.11 --with pytest pytest' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+exec
+/bin/zsh -lc 'uv run --python 3.11 --with pytest pytest -x' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 488ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+collected 4 items
+
+tests/test_config.py .                                                   [ 25%]
+tests/test_config_toml.py ...                                            [100%]
+
+=============================== warnings summary ===============================
+tests/test_config.py::test_loads_ini
+  /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/src/config.py:31: DeprecationWarning: Loading config.ini is deprecated; migrate configuration to config.toml.
+    return _load_ini(ini_path)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 4 passed, 1 warning in 0.01s =========================
+
+ succeeded in 772ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+collected 1 item
+
+tests/test_config.py .                                                   [100%]
+
+=============================== warnings summary ===============================
+tests/test_config.py::test_loads_ini
+  /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/src/config.py:31: DeprecationWarning: Loading config.ini is deprecated; migrate configuration to config.toml.
+    return _load_ini(ini_path)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 1 passed, 1 warning in 0.01s =========================
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+ succeeded in 1044ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+collected 4 items
+
+tests/test_config.py .                                                   [ 25%]
+tests/test_config_toml.py ...                                            [100%]
+
+=============================== warnings summary ===============================
+tests/test_config.py::test_loads_ini
+  /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/src/config.py:31: DeprecationWarning: Loading config.ini is deprecated; migrate configuration to config.toml.
+    return _load_ini(ini_path)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+========================= 4 passed, 1 warning in 0.01s =========================
+
+exec
+/bin/zsh -lc 'git diff -- src/config.py tests/test_config.py tests/test_config_toml.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+diff --git a/src/config.py b/src/config.py
+index 3601cc9..ad3931e 100644
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
+ 
+-def load_config(path: str = "config.ini") -> dict:
++
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+
+ succeeded in 0ms:
+ M src/config.py
+?? __pycache__/conftest.cpython-311-pytest-9.0.3.pyc
+?? src/__pycache__/__init__.cpython-311.pyc
+?? src/__pycache__/config.cpython-311.pyc
+?? tests/__pycache__/__init__.cpython-311.pyc
+?? tests/__pycache__/test_config.cpython-311-pytest-9.0.3.pyc
+?? tests/__pycache__/test_config_toml.cpython-311-pytest-9.0.3.pyc
+?? tests/test_config_toml.py
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+codex
+The final diff is limited to `src/config.py` plus the new TOML test file, but the Python 3.11 test run generated untracked `__pycache__` files. I’m cleaning those generated artifacts so the worktree only contains source/test changes.
+
+exec
+/bin/zsh -lc "find . -name '__pycache__' -type d -prune -exec rm -rf {} +" in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+ D __pycache__/conftest.cpython-312-pytest-9.0.3.pyc
+ D src/__pycache__/__init__.cpython-312.pyc
+ D src/__pycache__/config.cpython-312.pyc
+ M src/config.py
+ D tests/__pycache__/__init__.cpython-312.pyc
+ D tests/__pycache__/test_config.cpython-312-pytest-9.0.3.pyc
+?? tests/test_config_toml.py
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+codex
+Some pre-existing `.pyc` files are tracked in this fixture, so the cleanup removed tracked baseline files too. I’m restoring only those generated baseline files I just removed.
+
+exec
+/bin/zsh -lc 'git restore __pycache__ src/__pycache__ tests/__pycache__' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+ M src/config.py
+?? tests/test_config_toml.py
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+exec
+/bin/zsh -lc 'nl -ba tests/test_config_toml.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+exec
+/bin/zsh -lc 'nl -ba src/config.py' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+     1	import pytest
+     2	
+     3	from src.config import load_config
+     4	
+     5	
+     6	def test_loads_toml_only(tmp_path, monkeypatch):
+     7	    toml = tmp_path / "config.toml"
+     8	    toml.write_text(
+     9	        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
+    10	        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
+    11	    )
+    12	    monkeypatch.chdir(tmp_path)
+    13	
+    14	    cfg = load_config()
+    15	
+    16	    assert cfg["server"]["host"] == "0.0.0.0"
+    17	    assert cfg["server"]["port"] == 8080
+    18	    assert cfg["db"]["pool_size"] == 5
+    19	
+    20	
+    21	def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
+    22	    ini = tmp_path / "config.ini"
+    23	    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
+    24	    monkeypatch.chdir(tmp_path)
+    25	
+    26	    with pytest.warns(DeprecationWarning, match="config.toml"):
+    27	        cfg = load_config()
+    28	
+    29	    assert cfg["server"]["host"] == "1.2.3.4"
+    30	
+    31	
+    32	def test_both_present_prefers_toml(tmp_path, monkeypatch):
+    33	    ini = tmp_path / "config.ini"
+    34	    toml = tmp_path / "config.toml"
+    35	    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
+    36	    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
+    37	    monkeypatch.chdir(tmp_path)
+    38	
+    39	    cfg = load_config()
+    40	
+    41	    assert cfg["server"]["host"] == "toml.example"
+    42	    assert cfg["server"]["port"] == 8080
+
+ succeeded in 0ms:
+     1	"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+     2	import configparser
+     3	from pathlib import Path
+     4	import tomllib
+     5	import warnings
+     6	
+     7	
+     8	def _load_ini(path: Path) -> dict:
+     9	    warnings.warn(
+    10	        "Loading config.ini is deprecated; migrate configuration to config.toml.",
+    11	        DeprecationWarning,
+    12	        stacklevel=2,
+    13	    )
+    14	    parser = configparser.ConfigParser()
+    15	    parser.read(path)
+    16	    return {section: dict(parser[section]) for section in parser.sections()}
+    17	
+    18	
+    19	def _load_toml(path: Path) -> dict:
+    20	    with path.open("rb") as config_file:
+    21	        return tomllib.load(config_file)
+    22	
+    23	
+    24	def load_config(path: str | None = None) -> dict:
+    25	    if path is None:
+    26	        toml_path = Path("config.toml")
+    27	        ini_path = Path("config.ini")
+    28	        if toml_path.exists():
+    29	            return _load_toml(toml_path)
+    30	        if ini_path.exists():
+    31	            return _load_ini(ini_path)
+    32	        raise FileNotFoundError("config.toml")
+    33	
+    34	    config_path = Path(path)
+    35	    if not config_path.exists():
+    36	        raise FileNotFoundError(path)
+    37	    if config_path.suffix == ".toml":
+    38	        return _load_toml(config_path)
+    39	    return _load_ini(config_path)
+
+exec
+/bin/zsh -lc 'diff <(git show baseline:tests/test_config.py) tests/test_config.py; echo exit:$?' in /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration
+ succeeded in 0ms:
+exit:0
+
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+codex
+Implemented TOML-primary config loading.
+
+Changed:
+- [src/config.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/src/config.py:1): `load_config()` now prefers `config.toml`, falls back to `config.ini`, and emits `DeprecationWarning` for INI.
+- [tests/test_config_toml.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/tests/test_config_toml.py:1): added 3 TOML migration tests.
+- `tests/test_config.py` restored byte-identical to baseline; verified with `diff`.
+
+Done conditions:
+- TOML preferred when present: pass
+- INI fallback works: pass
+- INI fallback warns and mentions `config.toml`: pass
+- Existing `test_loads_ini` unmodified: pass
+- 3 new tests added: pass
+- `pytest -x` exits 0 under Python 3.11: pass
+
+Verification:
+- `uv run --python 3.11 --with pytest pytest tests/test_config.py`: `1 passed`
+- `uv run --python 3.11 --with pytest pytest`: `4 passed`
+- `uv run --python 3.11 --with pytest pytest -x`: `4 passed`
+
+Note: plain `pytest tests/test_config.py` in this environment is bound to Python 3.9.6 and fails because stdlib `tomllib` requires Python 3.11+.
+diff --git a/src/config.py b/src/config.py
+index 3601cc99536445aeb2ac149c8bb8e302ccf7eff3..ad3931e1d4f50ed08b167a8d5f2f7a411b13e011
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
++
+ 
+-def load_config(path: str = "config.ini") -> dict:
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)
+diff --git a/tests/test_config_toml.py b/tests/test_config_toml.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4bcaf84c9efe7af3534987eda4e59ce3f0916852
+--- /dev/null
++++ b/tests/test_config_toml.py
+@@ -0,0 +1,42 @@
++import pytest
++
++from src.config import load_config
++
++
++def test_loads_toml_only(tmp_path, monkeypatch):
++    toml = tmp_path / "config.toml"
++    toml.write_text(
++        '[server]\nhost = "0.0.0.0"\nport = 8080\n\n'
++        '[db]\nurl = "sqlite:///app.db"\npool_size = 5\n'
++    )
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "0.0.0.0"
++    assert cfg["server"]["port"] == 8080
++    assert cfg["db"]["pool_size"] == 5
++
++
++def test_ini_only_emits_deprecation_warning(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    ini.write_text("[server]\nhost = 1.2.3.4\nport = 9000\n")
++    monkeypatch.chdir(tmp_path)
++
++    with pytest.warns(DeprecationWarning, match="config.toml"):
++        cfg = load_config()
++
++    assert cfg["server"]["host"] == "1.2.3.4"
++
++
++def test_both_present_prefers_toml(tmp_path, monkeypatch):
++    ini = tmp_path / "config.ini"
++    toml = tmp_path / "config.toml"
++    ini.write_text("[server]\nhost = ini.example\nport = 9000\n")
++    toml.write_text('[server]\nhost = "toml.example"\nport = 8080\n')
++    monkeypatch.chdir(tmp_path)
++
++    cfg = load_config()
++
++    assert cfg["server"]["host"] == "toml.example"
++    assert cfg["server"]["port"] == 8080
+
+2026-05-30T09:48:18.688172Z ERROR codex_core::session: failed to record rollout items: thread 019e7846-1cb4-7432-a134-c139f480c291 not found
+tokens used
+71,609
+Implemented TOML-primary config loading.
+
+Changed:
+- [src/config.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/src/config.py:1): `load_config()` now prefers `config.toml`, falls back to `config.ini`, and emits `DeprecationWarning` for INI.
+- [tests/test_config_toml.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task08_config_migration/tests/test_config_toml.py:1): added 3 TOML migration tests.
+- `tests/test_config.py` restored byte-identical to baseline; verified with `diff`.
+
+Done conditions:
+- TOML preferred when present: pass
+- INI fallback works: pass
+- INI fallback warns and mentions `config.toml`: pass
+- Existing `test_loads_ini` unmodified: pass
+- 3 new tests added: pass
+- `pytest -x` exits 0 under Python 3.11: pass
+
+Verification:
+- `uv run --python 3.11 --with pytest pytest tests/test_config.py`: `1 passed`
+- `uv run --python 3.11 --with pytest pytest`: `4 passed`
+- `uv run --python 3.11 --with pytest pytest -x`: `4 passed`
+
+Note: plain `pytest tests/test_config.py` in this environment is bound to Python 3.9.6 and fails because stdlib `tomllib` requires Python 3.11+.

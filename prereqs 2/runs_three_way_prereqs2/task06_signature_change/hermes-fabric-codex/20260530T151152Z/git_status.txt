@@ -1,0 +1,6 @@
+ M src/proto.py
+?? __pycache__/conftest.cpython-311-pytest-9.0.3.pyc
+?? src/__pycache__/__init__.cpython-311.pyc
+?? src/__pycache__/proto.cpython-311.pyc
+?? tests/__pycache__/__init__.cpython-311.pyc
+?? tests/__pycache__/test_proto.cpython-311-pytest-9.0.3.pyc

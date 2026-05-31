@@ -1,0 +1,51 @@
+## PURPOSE
+
+`auth/jwt.py` provides minimal JWT access-token and refresh-token handling for the fixture. It can issue a short-lived access token plus a longer-lived refresh token, validate access tokens, and exchange a valid refresh token for a new token pair.
+
+## FLOW
+
+1. `issue(sub)`
+   1. Captures the current Unix timestamp with `int(time.time())` so both tokens share the same issued-at base time. `auth/jwt.py:13`
+   2. Creates an access token signed with `SECRET` and `ALGO`, containing `sub`, `iat`, and `exp`. `auth/jwt.py:14`–`auth/jwt.py:17`
+   3. The access token expires at `now + ACCESS_TTL`, where `ACCESS_TTL` is 900 seconds / 15 minutes. `auth/jwt.py:8`, `auth/jwt.py:15`
+   4. Creates a refresh token signed with the same `SECRET` and `ALGO`, containing `sub`, `iat`, `exp`, and `typ: "refresh"`. `auth/jwt.py:18`–`auth/jwt.py:21`
+   5. The refresh token expires at `now + REFRESH_TTL`, where `REFRESH_TTL` is 7 days. `auth/jwt.py:9`, `auth/jwt.py:19`
+   6. Returns both tokens in a dict: `{"access": access, "refresh": refresh}`. `auth/jwt.py:22`
+
+2. `validate(token)`
+   1. Attempts to decode the supplied token using `pyjwt.decode(token, SECRET, algorithms=[ALGO])`. This verifies the JWT signature, algorithm, and supported registered claims such as `exp`. `auth/jwt.py:27`–`auth/jwt.py:28`
+   2. If decoding raises `pyjwt.ExpiredSignatureError`, validation fails and returns `None`. `auth/jwt.py:29`–`auth/jwt.py:30`
+   3. If decoding raises any other `pyjwt.InvalidTokenError`, validation also fails and returns `None`. `auth/jwt.py:31`–`auth/jwt.py:32`
+   4. If the decoded claims include `typ == "refresh"`, validation rejects it because refresh tokens cannot be used as access tokens. `auth/jwt.py:33`–`auth/jwt.py:34`
+   5. Otherwise, validation succeeds and returns the decoded claims dict. `auth/jwt.py:35`
+
+3. `refresh(refresh_token)`
+   1. Attempts to decode the supplied refresh token using `pyjwt.decode(refresh_token, SECRET, algorithms=[ALGO])`. This verifies the JWT signature, algorithm, and supported registered claims such as `exp`. `auth/jwt.py:40`–`auth/jwt.py:41`
+   2. If decoding raises `pyjwt.InvalidTokenError`, refresh fails and returns `None`. `auth/jwt.py:42`–`auth/jwt.py:43`
+   3. If the decoded claims do not include `typ == "refresh"`, refresh fails and returns `None`. `auth/jwt.py:44`–`auth/jwt.py:45`
+   4. If the token is a valid refresh token, the function calls `issue(claims["sub"])` to issue a new access token and a new refresh token for the same subject. `auth/jwt.py:46`
+
+## EDGE CASES
+
+- Expired access token passed to `validate`: returns `None` after `pyjwt.ExpiredSignatureError`. `auth/jwt.py:29`–`auth/jwt.py:30`
+- Malformed, tampered, incorrectly signed, or otherwise invalid access token passed to `validate`: returns `None` after `pyjwt.InvalidTokenError`. `auth/jwt.py:31`–`auth/jwt.py:32`
+- Refresh token passed to `validate` as if it were an access token: returns `None`. `auth/jwt.py:33`–`auth/jwt.py:34`
+- Expired, malformed, tampered, incorrectly signed, or otherwise invalid token passed to `refresh`: returns `None`. `auth/jwt.py:40`–`auth/jwt.py:43`
+- Access token or any non-refresh token passed to `refresh`: returns `None` because `typ` is not `"refresh"`. `auth/jwt.py:44`–`auth/jwt.py:45`
+- Valid refresh token missing `sub`: raises `KeyError` when `claims["sub"]` is accessed. `auth/jwt.py:46`
+
+## GOTCHAS
+
+- Access tokens do not include `typ`; only refresh tokens include `typ: "refresh"`. Callers should not require access tokens to have a `typ` claim. `auth/jwt.py:15`, `auth/jwt.py:19`
+- `validate` rejects refresh tokens explicitly, so a refresh token cannot be reused as an access token. `auth/jwt.py:33`–`auth/jwt.py:34`
+- `refresh` requires `typ == "refresh"`, so a normal access token cannot be exchanged for a new token pair. `auth/jwt.py:44`–`auth/jwt.py:45`
+- Both access and refresh tokens are signed with the same `SECRET` and `ALGO`; changing either will invalidate previously issued tokens. `auth/jwt.py:6`–`auth/jwt.py:7`, `auth/jwt.py:16`, `auth/jwt.py:20`
+- Expiration is enforced by `pyjwt.decode`; the module does not implement custom clock skew or leeway handling. `auth/jwt.py:28`, `auth/jwt.py:41`
+- `refresh` returns a completely new access-plus-refresh pair, not just a new access token. `auth/jwt.py:38`–`auth/jwt.py:46`
+- Authentication failures are represented with the sentinel value `None`, not raised authentication exceptions. `auth/jwt.py:25`–`auth/jwt.py:35`, `auth/jwt.py:38`–`auth/jwt.py:46`
+
+Files changed: none.
+
+Verification run: read-only inspection of `prompt.txt`, `brief.md`, `pattern.txt`, `requirements.txt`, and `auth/jwt.py`; no test or mutation was required because the benchmark specifies “None — read-only.”
+
+session_id: 20260530_014717_9a2145

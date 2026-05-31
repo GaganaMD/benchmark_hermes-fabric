@@ -1,0 +1,131 @@
+diff --git a/src/workers/dispatch.py b/src/workers/dispatch.py
+index cc42b8e..734309a 100644
+--- a/src/workers/dispatch.py
++++ b/src/workers/dispatch.py
+@@ -1,4 +1,5 @@
+-"""Background task dispatcher. No retry, no idempotency. Often loses work."""
++"""Background task dispatcher with retry and idempotency support."""
++import time
+ from typing import Callable, Any
+ 
+ _results: dict[str, Any] = {}
+@@ -11,9 +12,37 @@ def fetch_from_broker(task_id: str) -> dict:
+     # In real life: pubsub/redis/sqs. Here: a stub that the test will patch.
+     raise NotImplementedError("inject me in tests")
+ 
+-def run_task(handler: Callable[[dict], Any], task_id: str) -> Any:
+-    """Fetch and run one task. No retry. No idempotency."""
+-    payload = fetch_from_broker(task_id)
++def run_task(
++    handler: Callable[[dict], Any],
++    task_id: str,
++    *,
++    max_retries: int = 3,
++    sleep: Callable[[float], None] = time.sleep,
++) -> Any:
++    """Fetch and run one task.
++
++    Broker fetches are retried on BrokerError with exponential backoff. Completed
++    task results are cached by task_id so repeat calls are idempotent.
++    """
++    if task_id in _results:
++        return _results[task_id]
++
++    if max_retries < 0:
++        raise ValueError("max_retries must be non-negative")
++
++    attempt = 0
++    delay = 0.1
++    while True:
++        try:
++            payload = fetch_from_broker(task_id)
++            break
++        except BrokerError:
++            if attempt == max_retries:
++                raise
++            sleep(delay)
++            delay *= 2
++            attempt += 1
++
+     result = handler(payload)
+     _results[task_id] = result
+     return result
+diff --git a/tests/test_workers.py b/tests/test_workers.py
+index dbd9cdf..8242ad6 100644
+--- a/tests/test_workers.py
++++ b/tests/test_workers.py
+@@ -1,6 +1,74 @@
+ from src.workers import dispatch
+ 
++import pytest
++
+ def test_run_task_happy_path(monkeypatch):
+     monkeypatch.setattr(dispatch, "fetch_from_broker", lambda tid: {"n": 21})
+     result = dispatch.run_task(lambda p: p["n"] * 2, "t1")
+     assert result == 42
++
++def test_retries_on_broker_error(monkeypatch):
++    dispatch._results.clear()
++    attempts = []
++    sleeps = []
++
++    def flaky_fetch(tid):
++        attempts.append(tid)
++        if len(attempts) < 3:
++            raise dispatch.BrokerError("temporary broker failure")
++        return {"n": 21}
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", flaky_fetch)
++
++    result = dispatch.run_task(
++        lambda p: p["n"] * 2,
++        "retry-task",
++        max_retries=3,
++        sleep=sleeps.append,
++    )
++
++    assert result == 42
++    assert attempts == ["retry-task", "retry-task", "retry-task"]
++    assert sleeps == [0.1, 0.2]
++
++def test_gives_up_after_max_retries(monkeypatch):
++    dispatch._results.clear()
++    attempts = []
++    sleeps = []
++
++    def failing_fetch(tid):
++        attempts.append(tid)
++        raise dispatch.BrokerError("broker down")
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", failing_fetch)
++
++    with pytest.raises(dispatch.BrokerError):
++        dispatch.run_task(
++            lambda p: p["n"] * 2,
++            "failed-task",
++            max_retries=2,
++            sleep=sleeps.append,
++        )
++
++    assert attempts == ["failed-task", "failed-task", "failed-task"]
++    assert sleeps == [0.1, 0.2]
++
++def test_idempotent(monkeypatch):
++    dispatch._results.clear()
++    fetches = []
++    handler_calls = []
++
++    def fetch(tid):
++        fetches.append(tid)
++        return {"n": 21}
++
++    def handler(payload):
++        handler_calls.append(payload)
++        return payload["n"] * 2
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", fetch)
++
++    assert dispatch.run_task(handler, "same-task") == 42
++    assert dispatch.run_task(handler, "same-task") == 42
++    assert fetches == ["same-task"]
++    assert handler_calls == [{"n": 21}]

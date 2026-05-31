@@ -1,0 +1,210 @@
+  ┊ review diff
+a/tests/test_workers.py → b/tests/test_workers.py
+@@ -1,6 +1,79 @@
+ from src.workers import dispatch
++
+ 
+ def test_run_task_happy_path(monkeypatch):
+     monkeypatch.setattr(dispatch, "fetch_from_broker", lambda tid: {"n": 21})
+     result = dispatch.run_task(lambda p: p["n"] * 2, "t1")
+     assert result == 42
++
++
++def test_retries_on_broker_error(monkeypatch):
++    attempts = []
++    sleeps = []
++
++    def flaky_fetch(task_id):
++        attempts.append(task_id)
++        if len(attempts) <= 2:
++            raise dispatch.BrokerError("broker unavailable")
++        return {"n": 21}
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", flaky_fetch)
++
++    result = dispatch.run_task(
++        lambda payload: payload["n"] * 2,
++        "retry-task",
++        sleep=sleeps.append,
++    )
++
++    assert result == 42
++    assert attempts == ["retry-task", "retry-task", "retry-task"]
++    assert sleeps == [0.1, 0.2]
++
++
++def test_gives_up_after_max_retries(monkeypatch):
++    attempts = []
++    sleeps = []
++
++    def always_fails(task_id):
++        attempts.append(task_id)
++        raise dispatch.BrokerError("still down")
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", always_fails)
++
++    try:
++        dispatch.run_task(
++            lambda payload: payload["n"] * 2,
++            "exhausted-task",
++            max_retries=2,
++            sleep=sleeps.append,
++        )
++    except dispatch.BrokerError as exc:
++        assert str(exc) == "still down"
++    else:
++        raise AssertionError("expected BrokerError after retry exhaustion")
++
++    assert attempts == ["exhausted-task", "exhausted-task", "exhausted-task"]
++    assert sleeps == [0.1, 0.2]
++
++
++def test_idempotent(monkeypatch):
++    handler_calls = []
++    fetch_calls = []
++
++    def fetch(task_id):
++        fetch_calls.append(task_id)
++        return {"n": 21}
++
++    def handler(payload):
++        handler_calls.append(payload)
++        return payload["n"] * 2
++
++    monkeypatch.setattr(dispatch, "fetch_from_broker", fetch)
++
++    first = dispatch.run_task(handler, "idempotent-task")
++    second = dispatch.run_task(handler, "idempotent-task")
++
++    assert first == 42
++    assert second == 42
++    assert handler_calls == [{"n": 21}]
+… omitted 1 diff line(s) across 1 additional file(s)/section(s)
+  ┊ review diff
+a/src/workers/dispatch.py → b/src/workers/dispatch.py
+@@ -1,4 +1,5 @@
+-"""Background task dispatcher. No retry, no idempotency. Often loses work."""
++"""Background task dispatcher with retry and idempotent result caching."""
++import time
+ from typing import Callable, Any
+ 
+ _results: dict[str, Any] = {}
+@@ -11,9 +12,32 @@
+     # In real life: pubsub/redis/sqs. Here: a stub that the test will patch.
+     raise NotImplementedError("inject me in tests")
+ 
+-def run_task(handler: Callable[[dict], Any], task_id: str) -> Any:
+-    """Fetch and run one task. No retry. No idempotency."""
+-    payload = fetch_from_broker(task_id)
++def run_task(
++    handler: Callable[[dict], Any],
++    task_id: str,
++    *,
++    max_retries: int = 3,
++    sleep: Callable[[float], None] = time.sleep,
++) -> Any:
++    """Fetch and run one task, retrying broker failures and caching results.
++
++    ``max_retries`` is the number of retry attempts after the initial broker
++    fetch. Backoff starts at 0.1s and doubles after each retryable failure.
++    """
++    if task_id in _results:
++        return _results[task_id]
++
++    delay = 0.1
++    for attempt in range(max_retries + 1):
++        try:
++            payload = fetch_from_broker(task_id)
++            break
++        except BrokerError:
++            if attempt == max_retries:
++                raise
++            sleep(delay)
++            delay *= 2
++
+     result = handler(payload)
+     _results[task_id] = result
+     return result
+  ┊ review diff
+a/src/workers/dispatch.py → b/src/workers/dispatch.py
+@@ -31,13 +31,13 @@
+     for attempt in range(max_retries + 1):
+         try:
+             payload = fetch_from_broker(task_id)
+-            break
++            result = handler(payload)
++            _results[task_id] = result
++            return result
+         except BrokerError:
+             if attempt == max_retries:
+                 raise
+             sleep(delay)
+             delay *= 2
+ 
+-    result = handler(payload)
+-    _results[task_id] = result
+-    return result
++    raise BrokerError("retry attempts exhausted")
+  ┊ review diff
+a/src/workers/dispatch.py → b/src/workers/dispatch.py
+@@ -31,13 +31,14 @@
+     for attempt in range(max_retries + 1):
+         try:
+             payload = fetch_from_broker(task_id)
+-            result = handler(payload)
+-            _results[task_id] = result
+-            return result
+         except BrokerError:
+             if attempt == max_retries:
+                 raise
+             sleep(delay)
+             delay *= 2
++        else:
++            result = handler(payload)
++            _results[task_id] = result
++            return result
+ 
+     raise BrokerError("retry attempts exhausted")
+Implemented the flaky worker reliability changes.
+
+Files changed:
+- `src/workers/dispatch.py`
+  - Added retry handling for `BrokerError`.
+  - Added configurable `max_retries`, default `3`.
+  - Added exponential backoff delays: `0.1`, `0.2`, `0.4`, etc.
+  - Added injectable `sleep` callable, defaulting to `time.sleep`, so tests stay fast.
+  - Added idempotent result caching by `task_id`; cached tasks return without re-fetching or re-running the handler.
+
+- `tests/test_workers.py`
+  - Kept existing `test_run_task_happy_path` behavior intact.
+  - Added `test_retries_on_broker_error`.
+  - Added `test_gives_up_after_max_retries`.
+  - Added `test_idempotent`.
+
+Verification run:
+- `pytest tests/test_workers.py::test_retries_on_broker_error -v`
+  - Initially failed as expected before implementation: `run_task() got an unexpected keyword argument 'sleep'`.
+  - Passed after implementation.
+
+Required verification commands:
+- `pytest -x`
+  - PASS: `4 passed in 0.00s`
+- `pytest tests/test_workers.py::test_idempotent -v`
+  - PASS
+- `pytest tests/test_workers.py::test_retries_on_broker_error -v`
+  - PASS
+
+DONE WHEN status:
+- `run_task` retries on `BrokerError` with configurable `max_retries`, default `3`: PASS
+- `run_task` is idempotent by `task_id`: PASS
+- Backoff delays are mockable via injectable `sleep`: PASS
+- Existing happy path still passes: PASS
+- `test_retries_on_broker_error` added and passing: PASS
+- `test_gives_up_after_max_retries` added and passing: PASS
+- `test_idempotent` added and passing: PASS
+- `pytest -x` exits 0: PASS
+
+Recovery behavior:
+- Retryable broker failures are retried with exponential backoff.
+- If broker failures exceed `max_retries`, the final `BrokerError` is re-raised.
+- If a task already has a cached result, `run_task` returns it immediately without calling the broker or handler again.

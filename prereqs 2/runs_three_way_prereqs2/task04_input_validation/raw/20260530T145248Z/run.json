@@ -1,0 +1,30 @@
+{
+  "task": "T4",
+  "task_id": "task04_input_validation",
+  "variant": "raw",
+  "ts": "20260530T145248Z",
+  "total_ms": 35803,
+  "agent_ms": 35803,
+  "fabric_ms": null,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "prompt_timeout": false,
+  "fabric_command": "",
+  "verification": [
+    {
+      "name": "pytest_parser",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "tests/test_parser.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 77,
+      "timeout": false,
+      "output": "...                                                                      [100%]\n3 passed in 0.00s\n"
+    }
+  ]
+}

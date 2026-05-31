@@ -1,0 +1,4 @@
+1. Identify Python files under `src/` containing `print(...)`.
+2. Replace those calls with `logger.info(...)`.
+3. Add a logger import/setup where missing, without touching forbidden paths such as `scripts/`.
+4. Run the verification command and report DONE WHEN status.I need access to the repository files to make the requested scoped edits and run verification. Please provide the project files or enable the Codex runtime filesystem access.

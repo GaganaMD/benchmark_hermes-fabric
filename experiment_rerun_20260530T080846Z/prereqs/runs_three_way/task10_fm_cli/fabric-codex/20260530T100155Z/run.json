@@ -1,0 +1,13 @@
+{
+  "task_id": "task10_fm_cli",
+  "variant": "fabric-codex",
+  "ts": "20260530T100155Z",
+  "total_ms": 296419,
+  "agent_ms": 155568,
+  "fabric_ms": 140849,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "na",
+  "fabric_command": "fabric -p create_prd | fabric -p improve_prompt | fabric -p codex_brief"
+}

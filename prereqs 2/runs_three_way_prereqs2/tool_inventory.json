@@ -1,0 +1,22 @@
+{
+  "codex": {
+    "available": true,
+    "path": "/opt/homebrew/bin/codex"
+  },
+  "fabric": {
+    "available": true,
+    "path": "/Users/basethesis/.local/bin/fabric"
+  },
+  "hermes": {
+    "available": true,
+    "path": "/Users/basethesis/.local/bin/hermes"
+  },
+  "rg": {
+    "available": false,
+    "path": ""
+  },
+  "python3": {
+    "available": true,
+    "path": "/usr/bin/python3"
+  }
+}

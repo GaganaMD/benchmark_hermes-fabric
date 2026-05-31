@@ -1,0 +1,4 @@
+1. Inspect the repository layout to confirm whether `tools/fm/` exists and identify files in scope.
+2. Create or update only files under `tools/fm/` for the CLI package, tests, metadata, and README.
+3. Run the required verification command from `tools/fm` (`pytest`) after edits.
+4. Report pass/fail against each acceptance condition.I’ll inspect the repository first, then implement the scoped `tools/fm/` project and run verification.

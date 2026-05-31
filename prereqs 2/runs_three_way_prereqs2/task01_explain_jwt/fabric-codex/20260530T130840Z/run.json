@@ -1,0 +1,40 @@
+{
+  "task": "T1",
+  "task_id": "task01_explain_jwt",
+  "variant": "fabric-codex",
+  "ts": "20260530T130840Z",
+  "total_ms": 55841,
+  "agent_ms": 28592,
+  "fabric_ms": 27247,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "prompt_timeout": false,
+  "fabric_command": "fabric -p explain_code",
+  "verification": [
+    {
+      "name": "git_diff_readonly",
+      "command": [
+        "git",
+        "diff",
+        "--"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 8,
+      "timeout": false,
+      "output": ""
+    },
+    {
+      "name": "git_status_readonly",
+      "command": [
+        "git",
+        "status",
+        "--short"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 7,
+      "timeout": false,
+      "output": ""
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "task": "T9",
+  "task_id": "task09_flaky_workers",
+  "variant": "hermes-fabric-codex",
+  "ts": "20260530T154954Z",
+  "total_ms": 100294,
+  "agent_ms": 100293,
+  "fabric_ms": 0,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "prompt_timeout": false,
+  "fabric_command": "fabric -p improve_prompt | fabric -p codex_brief",
+  "verification": [
+    {
+      "name": "pytest_workers",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "tests/test_workers.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 76,
+      "timeout": false,
+      "output": "....                                                                     [100%]\n4 passed in 0.00s\n"
+    }
+  ]
+}

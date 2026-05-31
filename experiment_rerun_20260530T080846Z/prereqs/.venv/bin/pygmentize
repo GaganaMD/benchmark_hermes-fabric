@@ -1,0 +1,6 @@
+#!/Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/.venv/bin/python3
+import sys
+from pygments.cmdline import main
+if __name__ == '__main__':
+    sys.argv[0] = sys.argv[0].removesuffix('.exe')
+    sys.exit(main())

@@ -1,0 +1,14 @@
+diff --git a/src/parser.py b/src/parser.py
+index e33561c..e152510 100644
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -2,6 +2,9 @@
+ from typing import Optional
+ 
+ def parse_frame(data: bytes) -> Optional[dict]:
++    if not data:
++        return None
++
+     # BUG: indexing into empty bytes raises IndexError.
+     # Spec (per tests): empty input must return None.
+     header = data[0]

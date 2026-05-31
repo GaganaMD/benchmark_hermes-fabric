@@ -1,0 +1,75 @@
+  ┊ review diff
+a/src/proto.py → b/src/proto.py
+@@ -1,5 +1,7 @@
+ """Packet decoder."""
+-def decode_packet(buf: bytes) -> dict:
++def decode_packet(buf: bytes, *, strict=False) -> dict:
+     if len(buf) < 2:
++        if strict:
++            raise ValueError("short")
+         return {"ok": False, "reason": "short"}
+     return {"ok": True, "type": buf[0], "len": buf[1], "body": buf[2:]}
+a/src/handler.py → b/src/handler.py
+@@ -1,7 +1,7 @@
+ from src.proto import decode_packet
+ 
+ def handle(raw: bytes) -> str:
+-    pkt = decode_packet(raw)
++    pkt = decode_packet(raw, strict=False)
+     if not pkt["ok"]:
+         return "drop"
+     return f"type={pkt['type']}"
+a/src/processor.py → b/src/processor.py
+@@ -3,7 +3,7 @@
+ def process_batch(raws):
+     out = []
+     for r in raws:
+-        pkt = decode_packet(r)
++        pkt = decode_packet(r, strict=False)
+         if pkt["ok"]:
+             out.append(pkt)
+     return out
+  ┊ review diff
+a/src/proto.py → b/src/proto.py
+@@ -1,5 +1,5 @@
+ """Packet decoder."""
+-def decode_packet(buf: bytes, *, strict=False) -> dict:
++def decode_packet(buf, *, strict=False):
+     if len(buf) < 2:
+         if strict:
+             raise ValueError("short")
+DONE WHEN status: DONE
+
+Files changed:
+- src/proto.py
+  - Changed signature to:
+    def decode_packet(buf, *, strict=False):
+  - Preserved non-strict return behavior.
+  - Added strict=True behavior: malformed/short packets raise ValueError("short").
+
+- src/handler.py
+  - Updated caller to:
+    decode_packet(raw, strict=False)
+
+- src/processor.py
+  - Updated caller to:
+    decode_packet(r, strict=False)
+
+Verification run:
+- pytest -x
+  - Result: 2 passed, exit 0
+
+- git diff --quiet tests/
+  - Result: exit 0, no test changes
+
+- Signature / call-site verification:
+  - Verified via Python equivalent because rg is not installed in this environment.
+  - Found 3 decode_packet( hits under src/:
+    - src/handler.py:4
+    - src/processor.py:6
+    - src/proto.py:2
+
+Note:
+- The requested rg command could not be run because rg is unavailable in this environment, but the same condition was verified with Python and passed.
+
+session_id: 20260530_023758_4d699f

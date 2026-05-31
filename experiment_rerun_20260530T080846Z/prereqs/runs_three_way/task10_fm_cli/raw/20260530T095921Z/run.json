@@ -1,0 +1,13 @@
+{
+  "task_id": "task10_fm_cli",
+  "variant": "raw",
+  "ts": "20260530T095921Z",
+  "total_ms": 153219,
+  "agent_ms": 153219,
+  "fabric_ms": null,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "na",
+  "fabric_command": ""
+}

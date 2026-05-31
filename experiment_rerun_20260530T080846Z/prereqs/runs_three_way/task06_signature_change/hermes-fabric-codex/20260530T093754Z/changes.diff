@@ -1,0 +1,39 @@
+diff --git a/src/handler.py b/src/handler.py
+index 5fdab92..53c0717 100644
+--- a/src/handler.py
++++ b/src/handler.py
+@@ -1,7 +1,7 @@
+ from src.proto import decode_packet
+ 
+ def handle(raw: bytes) -> str:
+-    pkt = decode_packet(raw)
++    pkt = decode_packet(raw, strict=False)
+     if not pkt["ok"]:
+         return "drop"
+     return f"type={pkt['type']}"
+diff --git a/src/processor.py b/src/processor.py
+index a11e128..8f9af1a 100644
+--- a/src/processor.py
++++ b/src/processor.py
+@@ -3,7 +3,7 @@ from src.proto import decode_packet
+ def process_batch(raws):
+     out = []
+     for r in raws:
+-        pkt = decode_packet(r)
++        pkt = decode_packet(r, strict=False)
+         if pkt["ok"]:
+             out.append(pkt)
+     return out
+diff --git a/src/proto.py b/src/proto.py
+index 5280e9b..13d40b8 100644
+--- a/src/proto.py
++++ b/src/proto.py
+@@ -1,5 +1,7 @@
+ """Packet decoder."""
+-def decode_packet(buf: bytes) -> dict:
++def decode_packet(buf, *, strict=False):
+     if len(buf) < 2:
++        if strict:
++            raise ValueError("short")
+         return {"ok": False, "reason": "short"}
+     return {"ok": True, "type": buf[0], "len": buf[1], "body": buf[2:]}

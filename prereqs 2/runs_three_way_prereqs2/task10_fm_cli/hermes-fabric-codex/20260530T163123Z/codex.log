@@ -1,0 +1,248 @@
+  ┊ review diff
+/dev/null → b/tools/fm/tests/__init__.py
++
+/dev/null → b/tools/fm/tests/test_fm.py
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def invoke(*args):
++    runner = CliRunner()
++    return runner.invoke(cli, list(args))
++
++
++def test_list_prints_recursive_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    nested = tmp_path / "nested"
++    nested.mkdir()
++    (nested / "b.txt").write_text("b")
++
++    result = invoke("list", str(tmp_path))
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_root_prints_nothing_and_exits_zero(tmp_path):
++    result = invoke("list", str(tmp_path))
++
++    assert result.exit_code == 0
++    assert result.output == ""
++
++
++def test_tag_then_search_by_tag_prints_relative_path(tmp_path):
++    readme = tmp_path / "README.md"
++    readme.write_text("draft")
++
++    tag_result = invoke("tag", str(readme), "draft")
++    search_result = invoke("search-by-tag", str(tmp_path), "draft")
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path):
++    readme = tmp_path / "README.md"
++    readme.write_text("draft")
++
++    first = invoke("tag", str(readme), "draft")
++    second = invoke("tag", str(readme), "draft")
++    search_result = invoke("search-by-tag", str(tmp_path), "draft")
++
++    assert first.exit_code == 0
++    assert second.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_move_updates_tags_atomically_from_user_point_of_view(tmp_path):
++    src = tmp_path / "README.md"
++    dst = tmp_path / "NOTES.md"
++    src.write_text("draft")
++
++    tag_result = invoke("tag", str(src), "draft")
++    move_result = invoke("move", str(src), str(dst))
++    search_result = invoke("search-by-tag", str(tmp_path), "draft")
++
++    assert tag_result.exit_code == 0
++    assert move_result.exit_code == 0
++    assert not src.exists()
++    assert dst.read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_four_subcommands():
++    result = invoke("--help")
++
++    assert result.exit_code == 0
++    for command in ["list", "move", "tag", "search-by-tag"]:
+… omitted 1 diff line(s) across 1 additional file(s)/section(s)
+  ┊ review diff
+/dev/null → b/tools/fm/__init__.py
++"""Small file-management CLI package."""
++
+/dev/null → b/tools/fm/db.py
++from __future__ import annotations
++
++import sqlite3
++from pathlib import Path
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++def connect(root: Path, *, create: bool = False) -> sqlite3.Connection | None:
++    path = db_path(root)
++    if not create and not path.exists():
++        return None
++    conn = sqlite3.connect(path)
++    conn.execute("PRAGMA foreign_keys = ON")
++    if create:
++        conn.executescript(SCHEMA)
++        conn.commit()
++    return conn
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root, create=True) as conn:
++        cur = conn.execute(
++            "INSERT OR IGNORE INTO files(path) VALUES (?)",
++            (relative_path,),
++        )
++        if cur.lastrowid:
++            file_id = cur.lastrowid
++        else:
++            file_id = conn.execute(
++                "SELECT id FROM files WHERE path = ?",
++                (relative_path,),
++            ).fetchone()[0]
++        conn.execute(
++            "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
++            (file_id, tag),
++        )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    conn = connect(root, create=False)
++    if conn is None:
++        return []
++    with conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    conn.close()
++    return [row[0] for row in rows]
++
++
+… omitted 152 diff line(s) across 3 additional file(s)/section(s)
+  ┊ review diff
+a/tools/fm/db.py → b/tools/fm/db.py
+@@ -37,7 +37,9 @@
+ 
+ 
+ def add_tag(root: Path, relative_path: str, tag: str) -> None:
+-    with connect(root, create=True) as conn:
++    conn = connect(root, create=True)
++    assert conn is not None
++    with conn:
+         cur = conn.execute(
+             "INSERT OR IGNORE INTO files(path) VALUES (?)",
+             (relative_path,),
+@@ -53,6 +55,7 @@
+             "INSERT OR IGNORE INTO tags(file_id, tag) VALUES (?, ?)",
+             (file_id, tag),
+         )
++    conn.close()
+ 
+ 
+ def paths_for_tag(root: Path, tag: str) -> list[str]:
+Completed.
+
+Scope inspection:
+- `tools/fm/` did not exist initially.
+- Final files in scope are only under `tools/fm/`:
+  - `tools/fm/__init__.py`
+  - `tools/fm/cli.py`
+  - `tools/fm/db.py`
+  - `tools/fm/ops.py`
+  - `tools/fm/tests/__init__.py`
+  - `tools/fm/tests/test_fm.py`
+
+Files changed:
+- Added `tools/fm/__init__.py`
+- Added `tools/fm/cli.py`
+  - Click entry point for `python -m tools.fm.cli`
+  - Commands: `list`, `move`, `tag`, `search-by-tag`
+- Added `tools/fm/db.py`
+  - SQLite schema and tag/file queries
+  - DB stored as `<root>/.fm.db`
+- Added `tools/fm/ops.py`
+  - Recursive list, atomic-ish move with tag update rollback, tag, search-by-tag
+- Added `tools/fm/tests/__init__.py`
+- Added `tools/fm/tests/test_fm.py`
+  - 6 pytest tests covering list, empty list, tag, idempotent tag, move preserving tags, help output
+
+Verification run:
+- `pytest tools/fm/tests/`
+  - PASS
+  - Output: `6 passed in 0.02s`
+- `python -m tools.fm.cli --help`
+  - PASS
+  - Help shows all four subcommands:
+    - `list`
+    - `move`
+    - `search-by-tag`
+    - `tag`
+
+Additional done-condition smoke check:
+- Empty managed root:
+  - `python -m tools.fm.cli list <empty-temp-dir>`
+  - PASS, printed nothing and exited 0
+- Tag/search:
+  - Created `README.md`
+  - `python -m tools.fm.cli tag <tmp>/README.md draft`
+  - `python -m tools.fm.cli search-by-tag <tmp> draft`
+  - PASS, printed `README.md`
+- Move/search:
+  - `python -m tools.fm.cli move <tmp>/README.md <tmp>/NOTES.md`
+  - `python -m tools.fm.cli search-by-tag <tmp> draft`
+  - PASS, printed `NOTES.md`
+
+Done conditions:
+- `python -m tools.fm.cli list .` works in an empty dir: PASS
+- `tag README.md draft && search-by-tag . draft` prints `README.md`: PASS
+- `move README.md NOTES.md && search-by-tag . draft` prints `NOTES.md`: PASS
+- `pytest tools/fm/tests/` exits 0 with at least 4 tests: PASS, 6 tests
+- `python -m tools.fm.cli --help` shows all four subcommands: PASS
+
+Recovery behavior:
+- The shell command `apply_patch` was not available in this environment (`command not found`), so I used the available Hermes patch tool to make scoped patch-style edits.
+- An initial smoke check failed because it changed into a temp directory before invoking `python -m tools.fm.cli`, so Python could not import the repo-local `tools` package. I reran the smoke check correctly from the repo while passing the temp directory as the managed root.
+- Removed generated `__pycache__` files under `tools/fm/` after verification.

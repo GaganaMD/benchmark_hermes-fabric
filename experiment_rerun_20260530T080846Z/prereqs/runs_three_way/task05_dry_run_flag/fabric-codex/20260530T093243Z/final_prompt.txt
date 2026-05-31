@@ -1,0 +1,4 @@
+1. Inspect `src/cli.py` and `tests/test_cli.py` to understand the CLI and existing test patterns.
+2. Edit only `src/cli.py` and `tests/test_cli.py` to add `--dry-run` behavior and coverage.
+3. Run the verification command (`pytest -x`).
+4. Report pass/fail against the requested conditions.I’m sorry, but I can’t make changes without access to the repository/files in this chat.

@@ -1,0 +1,255 @@
+ANSWER:
+
+A typical signup data flow from `api/handlers.py` → `services/user.py` → `db/repo.py` looks like this:
+
+1. `api/handlers.py` receives the signup request
+
+   The API handler is the entry point for the HTTP request.
+
+   Example flow:
+
+   ```python
+   POST /signup
+   ```
+
+   The handler usually:
+
+   - Reads request body data, such as:
+     - email
+     - username
+     - password
+     - name
+   - Validates basic request structure
+   - Converts the request into an internal object or dictionary
+   - Calls the user service layer
+
+   Conceptually:
+
+   ```python
+   async def signup(request):
+       data = await request.json()
+
+       user = await user_service.create_user(data)
+
+       return JSONResponse(user)
+   ```
+
+   At this layer, the API should mostly deal with HTTP concerns:
+
+   - request parsing
+   - response formatting
+   - status codes
+   - authentication/session handling if needed
+   - error-to-HTTP mapping
+
+2. `services/user.py` handles business logic
+
+   The service layer receives the signup data from the handler.
+
+   It usually performs application-specific logic such as:
+
+   - checking whether the email is already registered
+   - validating password rules
+   - hashing the password
+   - normalizing fields like email
+   - creating a user domain object
+   - deciding what should be saved
+   - possibly sending welcome emails or emitting events
+
+   Conceptually:
+
+   ```python
+   async def create_user(data):
+       email = data["email"].lower()
+
+       existing_user = await user_repo.get_by_email(email)
+       if existing_user:
+           raise UserAlreadyExistsError()
+
+       password_hash = hash_password(data["password"])
+
+       user = {
+           "email": email,
+           "password_hash": password_hash,
+           "name": data.get("name"),
+       }
+
+       created_user = await user_repo.create(user)
+
+       return created_user
+   ```
+
+   This layer should not usually care about HTTP details. It should focus on signup rules and user-related behavior.
+
+3. `db/repo.py` performs database operations
+
+   The repository layer receives prepared user data from `services/user.py`.
+
+   It is responsible for direct persistence work, such as:
+
+   - querying for an existing user
+   - inserting the new user row/document
+   - returning the created database record
+   - translating database results into Python objects
+
+   Conceptually:
+
+   ```python
+   async def get_by_email(email):
+       return await db.users.find_one({"email": email})
+   ```
+
+   And:
+
+   ```python
+   async def create(user):
+       result = await db.users.insert_one(user)
+       return await db.users.find_one({"_id": result.inserted_id})
+   ```
+
+   Or in SQL-style code:
+
+   ```python
+   async def create(user):
+       row = await db.fetch_one(
+           """
+           INSERT INTO users (email, password_hash, name)
+           VALUES (:email, :password_hash, :name)
+           RETURNING id, email, name, created_at
+           """,
+           user,
+       )
+       return row
+   ```
+
+4. Data flow summary
+
+   The signup request moves through the layers like this:
+
+   ```text
+   Client
+     |
+     v
+   api/handlers.py
+     - receives HTTP signup request
+     - parses request JSON/form data
+     - calls service function
+     |
+     v
+   services/user.py
+     - validates signup rules
+     - checks if user already exists
+     - hashes password
+     - prepares user data
+     - calls repository
+     |
+     v
+   db/repo.py
+     - queries database
+     - inserts new user
+     - returns saved user record
+     |
+     v
+   services/user.py
+     - may transform database user into safe output
+     - removes password hash from response
+     |
+     v
+   api/handlers.py
+     - converts service result into HTTP response
+     |
+     v
+   Client
+   ```
+
+5. Important transformation points
+
+   The raw incoming data starts in `api/handlers.py`, for example:
+
+   ```json
+   {
+     "email": "USER@example.com",
+     "password": "secret123",
+     "name": "Jane"
+   }
+   ```
+
+   In `services/user.py`, it may become:
+
+   ```python
+   {
+       "email": "user@example.com",
+       "password_hash": "...hashed password...",
+       "name": "Jane"
+   }
+   ```
+
+   In `db/repo.py`, it is inserted into the database.
+
+   The returned user should usually exclude sensitive fields:
+
+   ```json
+   {
+     "id": 123,
+     "email": "user@example.com",
+     "name": "Jane",
+     "created_at": "2026-05-30T12:00:00Z"
+   }
+   ```
+
+6. Responsibility split
+
+   `api/handlers.py`:
+
+   - HTTP request/response handling
+   - input extraction
+   - status codes
+   - routing
+
+   `services/user.py`:
+
+   - signup business logic
+   - validation
+   - password hashing
+   - duplicate user checks
+   - safe response shaping
+
+   `db/repo.py`:
+
+   - database queries
+   - inserts/updates
+   - database record retrieval
+
+7. Error flow
+
+   If something goes wrong, the flow usually reverses upward:
+
+   ```text
+   db/repo.py raises database or lookup error
+       ↓
+   services/user.py converts it into a business error
+       ↓
+   api/handlers.py converts it into an HTTP response
+   ```
+
+   For example:
+
+   ```text
+   Duplicate email found
+   ```
+
+   may become:
+
+   ```http
+   409 Conflict
+   ```
+
+   with a response like:
+
+   ```json
+   {
+     "error": "User already exists"
+   }
+   ```
+
+In short: `api/handlers.py` accepts the signup request, `services/user.py` applies signup rules and prepares safe user data, and `db/repo.py` persists that data to the database.

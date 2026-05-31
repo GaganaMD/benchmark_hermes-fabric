@@ -1,0 +1,13 @@
+{
+  "task_id": "task09_flaky_workers",
+  "variant": "raw",
+  "ts": "20260530T095311Z",
+  "total_ms": 69322,
+  "agent_ms": 69322,
+  "fabric_ms": null,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": ""
+}

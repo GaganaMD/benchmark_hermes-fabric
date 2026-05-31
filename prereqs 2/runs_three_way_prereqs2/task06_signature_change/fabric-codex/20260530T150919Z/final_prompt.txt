@@ -1,0 +1,28 @@
+1. Inspect the in-scope source files to understand current `decode_packet` behavior and call sites.
+2. Edit only the in-scope files, using `apply_patch`, to add the keyword-only `strict` flag and update call sites if needed.
+3. Run the required verification commands plus the requested `rg "decode_packet\(" src/`.
+4. Report pass/fail for each DONE WHEN condition.```bash
+sed -n '1,200p' src/proto.py && printf '\n--- handler ---\n' && sed -n '1,200p' src/handler.py && printf '\n--- processor ---\n' && sed -n '1,200p' src/processor.py && printf '\n--- rg ---\n' && rg "decode_packet\(" src/
+```1. Plan:
+   1. Inspect `src/proto.py`, `src/handler.py`, and `src/processor.py`.
+   2. Patch `decode_packet(buf)` to `decode_packet(buf, *, strict=False)`.
+   3. Ensure malformed packets raise `ValueError` only when `strict=True`.
+   4. Update any `src/` call sites if required.
+   5. Run:
+      - `pytest -x`
+      - `git diff --quiet tests/`
+      - `rg -q "def decode_packet\(buf, \*, strict=False\)" src/proto.py`
+      - `rg "decode_packet\(" src/`
+
+I’m blocked because this chat does not expose filesystem/shell tools or an `apply_patch` tool, so I cannot inspect or edit the repository, nor run the required verification commands.
+
+No files were modified.
+
+DONE WHEN status:
+
+- `decode_packet` in `src/proto.py` has signature `decode_packet(buf, *, strict=False)`: **not verified**
+- All call sites inside `src/` work under the new signature: **not verified**
+- When `strict=True`, malformed packets raise `ValueError` instead of returning `{"ok": False}`: **not verified**
+- `git diff -- tests/` is empty: **not verified**
+- `pytest -x` exits 0: **not verified**
+- `rg "decode_packet\(" src/` shows >= 3 hits: **not verified**

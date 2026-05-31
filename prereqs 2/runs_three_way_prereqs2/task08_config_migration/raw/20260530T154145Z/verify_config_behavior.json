@@ -1,0 +1,11 @@
+{
+  "name": "config_behavior",
+  "command": [
+    "python3",
+    "<toml/ini behavior probe>"
+  ],
+  "exit_code": 1,
+  "elapsed_ms": 40,
+  "timeout": false,
+  "output": "python 3.11.15\nTraceback (most recent call last):\n  File \"<string>\", line 7, in <module>\nAttributeError: module 'importlib' has no attribute 'util'\n"
+}

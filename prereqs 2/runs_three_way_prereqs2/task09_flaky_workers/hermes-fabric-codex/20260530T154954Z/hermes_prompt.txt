@@ -1,0 +1,32 @@
+You are the Hermes orchestration layer for a coding-agent benchmark. Use available file and terminal tools to complete the task in this repository. Preserve benchmark constraints exactly. Inspect the repository before editing. Run the task-specific verification commands before finalizing. When finished, summarize files changed, verification run, and any recovery behavior.
+
+Plan:
+1. Inspect `src/workers/dispatch.py` and `tests/test_workers.py` to understand current APIs and tests.
+2. Patch only those two files to add retry/backoff, injectable sleep, idempotent result caching, and requested tests.
+3. Run the specified verification commands.
+4. Report pass/fail for each done condition.{"cmd": "sed -n '1,200p' src/workers/dispatch.py && printf '\\n--- tests ---\\n' && sed -n '1,240p' tests/test_workers.py"}{"cmd": "sed -n '1,200p' src/workers/dispatch.py && printf '\\n--- tests ---\\n' && sed -n '1,240p' tests/test_workers.py"}{"cmd": "ls -la && find src -maxdepth 3 -type f | sort | sed -n '1,80p' && find tests -maxdepth 2 -type f | sort | sed -n '1,80p'"}{"cmd": "pwd"}{"cmd": "pwd && sed -n '1,200p' src/workers/dispatch.py && printf '\\n--- tests ---\\n' && sed -n '1,240p' tests/test_workers.py"}{"cmd": "pwd"}{"cmd": "pwd"}apply_patch <<'PATCH'
+*** Begin Patch
+*** Update File: src/workers/dispatch.py
+@@
++import time
+*** End Patch
+PATCH
+Plan:
+1. Inspect `src/workers/dispatch.py` and `tests/test_workers.py`.
+2. Patch only those files.
+3. Run:
+   - `pytest -x`
+   - `pytest tests/test_workers.py::test_idempotent -v`
+   - `pytest tests/test_workers.py::test_retries_on_broker_error -v`
+4. Report pass/fail per DONE WHEN condition.
+
+I’m unable to complete the requested edits in this turn because the Codex file-editing/runtime tools are not available in this session: my attempted shell and `apply_patch` commands were not executed, so I cannot safely inspect, modify, or verify the repository.
+
+DONE WHEN status:
+1. `run_task` retries retryable broker failures using exponential backoff: **FAIL — not edited**
+2. `run_task` is idempotent by `task_id`: **FAIL — not edited**
+3. Existing `test_run_task_happy_path` remains compatible: **UNKNOWN — tests not run**
+4. Added `test_retries_on_broker_error`: **FAIL — not edited**
+5. Added `test_gives_up_after_max_retries`: **FAIL — not edited**
+6. Added `test_idempotent`: **FAIL — not edited**
+7. Verification commands pass: **FAIL — commands not run**

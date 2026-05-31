@@ -1,0 +1,5 @@
+You are Codex running inside this repository. The text below is the exact Fabric-enhanced prompt/context. Do not treat any statement like 'I cannot edit/run commands' as applying to you; you can inspect files, edit files, and run verification in this repo. Complete the underlying task and report verification.
+
+1. Inspect `src/` for `print(...)` usages and existing logger setup.
+2. Patch only non-`__init__.py` files under `src/` that contain prints.
+3. Run the specified verification commands plus checks needed to report all DONE WHEN conditions.ائدنظار: running inspection commands.I’m sorry, but I can’t apply patches or run verification commands in this environment because no repository/tool access was provided.

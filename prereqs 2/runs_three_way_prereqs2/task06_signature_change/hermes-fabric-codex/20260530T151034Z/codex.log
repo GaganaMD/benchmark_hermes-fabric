@@ -1,0 +1,108 @@
+  ┊ review diff
+a//Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task06_signature_change/src/proto.py → b//Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task06_signature_change/src/proto.py
+@@ -1,5 +1,7 @@
+ """Packet decoder."""
+-def decode_packet(buf: bytes) -> dict:
++def decode_packet(buf: bytes, *, strict=False) -> dict:
+     if len(buf) < 2:
++        if strict:
++            raise ValueError("short packet")
+         return {"ok": False, "reason": "short"}
+     return {"ok": True, "type": buf[0], "len": buf[1], "body": buf[2:]}
+  ┊ review diff
+a/src/proto.py → b/src/proto.py
+@@ -1,5 +1,7 @@
+ """Packet decoder."""
+-def decode_packet(buf: bytes) -> dict:
++def decode_packet(buf, *, strict=False):
+     if len(buf) < 2:
++        if strict:
++            raise ValueError("malformed packet")
+         return {"ok": False, "reason": "short"}
+     return {"ok": True, "type": buf[0], "len": buf[1], "body": buf[2:]}
+Task completed.
+
+Files changed:
+- src/proto.py
+  - Changed signature to:
+    def decode_packet(buf, *, strict=False):
+  - Preserved non-strict malformed packet behavior:
+    {"ok": False, "reason": "short"}
+  - Added strict malformed behavior:
+    raises ValueError("malformed packet")
+
+Files inspected:
+- src/proto.py
+- src/handler.py
+- src/processor.py
+- tests/test_proto.py / brief.md for constraints only
+
+Call sites:
+- src/handler.py: no change needed; decode_packet(raw) still uses strict=False default.
+- src/processor.py: no change needed; decode_packet(r) still uses strict=False default.
+
+Verification run:
+
+1. pytest -x
+   PASS
+
+   Output:
+   2 passed in 0.00s
+
+2. git diff --quiet tests/
+   PASS
+
+3. rg -q "def decode_packet\(buf, \*, strict=False\)" src/proto.py
+   FAIL as a command because rg is not installed on this host:
+   /bin/bash: rg: command not found
+   exit 127
+
+   Recovery verification with Python fallback:
+   PASS
+   signature_found=True
+
+4. rg "decode_packet\(" src/
+   FAIL as a command because rg is not installed on this host:
+   /bin/bash: rg: command not found
+   exit 127
+
+   Recovery verification with Python fallback:
+   PASS, 3 hits found:
+   src/handler.py:4:    pkt = decode_packet(raw)
+   src/processor.py:6:        pkt = decode_packet(r)
+   src/proto.py:2:def decode_packet(buf, *, strict=False):
+
+5. Explicit strict behavior check
+   PASS
+
+   Output:
+   strict malformed raised ValueError: malformed packet
+
+DONE WHEN status:
+
+- decode_packet in src/proto.py has signature decode_packet(buf, *, strict=False):
+  PASS
+
+- All call sites inside src/ work under the new signature:
+  PASS
+
+- When strict=True, malformed packets raise ValueError instead of returning {"ok": False}:
+  PASS
+
+- git diff -- tests/ is empty:
+  PASS
+
+- pytest -x exits 0:
+  PASS
+
+- rg "decode_packet\(" src/ shows >= 3 hits:
+  Native rg command: FAIL due missing rg binary on host.
+  Code condition verified by fallback: PASS, 3 hits.
+
+Recovery behavior:
+- The requested apply_patch command was not available on this host:
+  /bin/bash: apply_patch: command not found
+- I recovered by editing only the in-scope source file src/proto.py and then verified the final on-disk file with terminal and read tools.
+- rg was also unavailable, so I ran the requested rg commands, captured the failures, and used a Python fallback to verify the same signature and hit-count conditions.
+
+session_id: 20260530_081035_64feb7

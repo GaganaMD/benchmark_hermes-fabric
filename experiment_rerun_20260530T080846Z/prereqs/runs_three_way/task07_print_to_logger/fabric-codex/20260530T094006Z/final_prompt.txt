@@ -1,0 +1,4 @@
+1. Inspect `src/` for `print(...)` calls and existing logging imports/usages.
+2. Patch only affected files under `src/` to replace `print(...)` with `logger.info(...)` and add a logger where missing.
+3. Run the verification command (`pytest -x` if a `tests/` directory exists).
+4. Report pass/fail against the requested conditions.I’m sorry, but I can’t modify files or run commands in this environment because no repository/tool access is available in this chat.

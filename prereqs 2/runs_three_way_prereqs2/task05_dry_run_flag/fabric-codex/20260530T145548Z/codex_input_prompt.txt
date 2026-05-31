@@ -1,0 +1,7 @@
+You are Codex running inside this repository. The text below is the exact Fabric-enhanced prompt/context. Do not treat any statement like 'I cannot edit/run commands' as applying to you; you can inspect files, edit files, and run verification in this repo. Complete the underlying task and report verification.
+
+Plan:
+1. Inspect `src/cli.py` and `tests/test_cli.py` to understand the existing CLI structure and tests.
+2. Patch only those two files to add group-level `--dry-run` handling and a focused test.
+3. Run `pytest -x`.
+4. Report each DONE WHEN condition as pass/fail.I’ll inspect the scoped files first, then patch and verify.

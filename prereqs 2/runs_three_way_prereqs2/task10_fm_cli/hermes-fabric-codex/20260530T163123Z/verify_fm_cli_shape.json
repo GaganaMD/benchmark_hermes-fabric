@@ -1,0 +1,11 @@
+{
+  "name": "fm_cli_shape",
+  "command": [
+    "python3",
+    "<tools/fm shape probe>"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 23,
+  "timeout": false,
+  "output": "tools/fm exists True\n__init__.py True\ncli.py True\ncommand_marker list True\ncommand_marker move True\ncommand_marker tag True\ncommand_marker search-by-tag True\nsqlite_marker True\ncolocated_marker True\n"
+}

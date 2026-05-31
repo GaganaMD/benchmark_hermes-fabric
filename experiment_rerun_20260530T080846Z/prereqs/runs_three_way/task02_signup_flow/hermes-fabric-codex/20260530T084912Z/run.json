@@ -1,0 +1,13 @@
+{
+  "task_id": "task02_signup_flow",
+  "variant": "hermes-fabric-codex",
+  "ts": "20260530T084912Z",
+  "total_ms": 71806,
+  "agent_ms": 53099,
+  "fabric_ms": 18705,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "na",
+  "fabric_command": "fabric -p explain_code"
+}

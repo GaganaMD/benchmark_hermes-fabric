@@ -1,0 +1,17 @@
+diff --git a/src/proto.py b/src/proto.py
+index 5280e9b..c17eb3b 100644
+--- a/src/proto.py
++++ b/src/proto.py
+@@ -1,5 +1,10 @@
+ """Packet decoder."""
+-def decode_packet(buf: bytes) -> dict:
++def decode_packet(buf, *, strict=False):
++    def _malformed(result):
++        if strict:
++            raise ValueError("malformed packet")
++        return result
++
+     if len(buf) < 2:
+-        return {"ok": False, "reason": "short"}
++        return _malformed({"ok": False, "reason": "short"})
+     return {"ok": True, "type": buf[0], "len": buf[1], "body": buf[2:]}

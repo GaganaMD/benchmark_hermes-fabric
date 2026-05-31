@@ -1,0 +1,54 @@
+{
+  "task": "T8",
+  "task_id": "task08_config_migration",
+  "variant": "hermes-fabric-codex",
+  "ts": "20260530T154510Z",
+  "total_ms": 98016,
+  "agent_ms": 98016,
+  "fabric_ms": 0,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "prompt_timeout": false,
+  "fabric_command": "fabric -p improve_prompt | fabric -p codex_brief",
+  "verification": [
+    {
+      "name": "pytest_config",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "tests/test_config.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 89,
+      "timeout": false,
+      "output": ".                                                                        [100%]\n=============================== warnings summary ===============================\ntests/test_config.py::test_loads_ini\n  /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task08_config_migration/src/config.py:32: DeprecationWarning: config.ini support is deprecated; migrate configuration to config.toml\n    return _load_ini(requested)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n1 passed, 1 warning in 0.00s\n"
+    },
+    {
+      "name": "pytest_all",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 86,
+      "timeout": false,
+      "output": "....                                                                     [100%]\n=============================== warnings summary ===============================\ntests/test_config.py::test_loads_ini\n  /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task08_config_migration/src/config.py:32: DeprecationWarning: config.ini support is deprecated; migrate configuration to config.toml\n    return _load_ini(requested)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n4 passed, 1 warning in 0.01s\n"
+    },
+    {
+      "name": "config_behavior",
+      "command": [
+        "python3",
+        "<toml/ini behavior probe>"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 23,
+      "timeout": false,
+      "output": "python 3.11.15\nTraceback (most recent call last):\n  File \"<string>\", line 7, in <module>\nAttributeError: module 'importlib' has no attribute 'util'\n"
+    }
+  ]
+}

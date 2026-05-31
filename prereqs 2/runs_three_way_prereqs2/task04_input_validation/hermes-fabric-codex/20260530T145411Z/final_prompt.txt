@@ -1,0 +1,4 @@
+1. Inspect `src/parser.py` and `tests/test_parser.py` to understand current behavior.
+2. Add an early empty-input validation in `parse_frame()`.
+3. Add a focused test asserting `ValueError` for `parse_frame(b"")`.
+4. Run the specified verification commands and report each DONE WHEN condition.`parser.py` and `test_parser.py` before editing:I’m sorry, but I can’t apply edits or run commands in this environment because no filesystem/tool access is available in this chat.

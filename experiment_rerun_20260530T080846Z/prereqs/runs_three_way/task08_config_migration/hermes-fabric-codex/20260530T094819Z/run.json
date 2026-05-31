@@ -1,0 +1,13 @@
+{
+  "task_id": "task08_config_migration",
+  "variant": "hermes-fabric-codex",
+  "ts": "20260530T094819Z",
+  "total_ms": 176638,
+  "agent_ms": 136055,
+  "fabric_ms": 40581,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": "fabric -p improve_prompt | fabric -p codex_brief"
+}

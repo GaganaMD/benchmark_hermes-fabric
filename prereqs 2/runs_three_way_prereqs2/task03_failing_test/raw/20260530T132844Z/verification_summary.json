@@ -1,0 +1,29 @@
+[
+  {
+    "name": "pytest_target",
+    "command": [
+      "python3",
+      "-m",
+      "pytest",
+      "tests/test_parser.py::test_handles_empty",
+      "-q"
+    ],
+    "exit_code": 1,
+    "elapsed_ms": 23,
+    "timeout": false,
+    "output": "/Library/Developer/CommandLineTools/usr/bin/python3: No module named pytest\n"
+  },
+  {
+    "name": "git_diff_tests",
+    "command": [
+      "git",
+      "diff",
+      "--",
+      "tests/"
+    ],
+    "exit_code": 0,
+    "elapsed_ms": 6,
+    "timeout": false,
+    "output": ""
+  }
+]

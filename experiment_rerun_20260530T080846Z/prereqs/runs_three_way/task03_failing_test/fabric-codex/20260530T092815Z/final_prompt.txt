@@ -1,0 +1,5 @@
+Plan:
+1. Inspect the failing test and related parser implementation without modifying tests.
+2. Patch the minimal source file needed to handle the empty-input case.
+3. Run the targeted failing test, then the default verification command.
+4. Report pass/fail for the done criteria.I’ll need access to the repository/runtime to inspect files and run tests.

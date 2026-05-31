@@ -1,0 +1,27 @@
+[
+  {
+    "name": "pytest_cli",
+    "command": [
+      "python3",
+      "-m",
+      "pytest",
+      "tests/test_cli.py",
+      "-q"
+    ],
+    "exit_code": 0,
+    "elapsed_ms": 81,
+    "timeout": false,
+    "output": "..                                                                       [100%]\n2 passed in 0.01s\n"
+  },
+  {
+    "name": "dry_run_no_write",
+    "command": [
+      "python3",
+      "<dry-run probe>"
+    ],
+    "exit_code": 0,
+    "elapsed_ms": 35,
+    "timeout": false,
+    "output": "$ /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/.venv/bin/python3 -m src.cli --dry-run write dryrun_probe.txt --content probe\nrc= 0\nwould write dryrun_probe.txt\n\ndryrun_probe_exists= False\n"
+  }
+]

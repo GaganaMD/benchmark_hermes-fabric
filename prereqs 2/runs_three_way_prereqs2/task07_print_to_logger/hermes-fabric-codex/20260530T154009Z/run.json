@@ -1,0 +1,53 @@
+{
+  "task": "T7",
+  "task_id": "task07_print_to_logger",
+  "variant": "hermes-fabric-codex",
+  "ts": "20260530T154009Z",
+  "total_ms": 95990,
+  "agent_ms": 95989,
+  "fabric_ms": 0,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "prompt_timeout": false,
+  "fabric_command": "fabric -p codex_brief",
+  "verification": [
+    {
+      "name": "scan_print_src",
+      "command": [
+        "python3",
+        "<fallback AST scan print calls>"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 19,
+      "timeout": false,
+      "output": "rg unavailable; used Python AST fallback.\n"
+    },
+    {
+      "name": "pytest_all",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 5,
+      "elapsed_ms": 131,
+      "timeout": false,
+      "output": "\nno tests ran in 0.00s\n"
+    },
+    {
+      "name": "git_diff_scripts",
+      "command": [
+        "git",
+        "diff",
+        "--",
+        "scripts/"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 10,
+      "timeout": false,
+      "output": ""
+    }
+  ]
+}

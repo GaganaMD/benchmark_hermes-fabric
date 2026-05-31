@@ -1,0 +1,61 @@
+diff --git a/src/cli.py b/src/cli.py
+index 5ca276b..d975bd1 100644
+--- a/src/cli.py
++++ b/src/cli.py
+@@ -3,24 +3,36 @@ import click
+ from pathlib import Path
+ 
+ @click.group()
+-def cli():
+-    pass
++@click.option("--dry-run", is_flag=True, help="Print intended actions without changing files.")
++@click.pass_context
++def cli(ctx, dry_run):
++    ctx.obj = {"dry_run": dry_run}
+ 
+ @cli.command()
+ @click.argument("name")
+ @click.option("--content", default="hello\n")
+-def write(name, content):
++@click.pass_context
++def write(ctx, name, content):
+     """Write CONTENT to a file named NAME."""
++    if ctx.obj["dry_run"]:
++        click.echo(f"would write {name}")
++        return
++
+     Path(name).write_text(content)
+     click.echo(f"wrote {name}")
+ 
+ @cli.command()
+ @click.argument("name")
+ @click.option("--suffix", default=".bak")
+-def rename(name, suffix):
++@click.pass_context
++def rename(ctx, name, suffix):
+     """Rename NAME to NAME+SUFFIX."""
+     src = Path(name)
+     dst = src.with_suffix(src.suffix + suffix)
++    if ctx.obj["dry_run"]:
++        click.echo(f"would rename {name} -> {dst}")
++        return
++
+     src.rename(dst)
+     click.echo(f"renamed {name} -> {dst}")
+ 
+diff --git a/tests/test_cli.py b/tests/test_cli.py
+index 349a2cb..6549293 100644
+--- a/tests/test_cli.py
++++ b/tests/test_cli.py
+@@ -7,3 +7,11 @@ def test_write_creates_file(tmp_path, monkeypatch):
+     result = runner.invoke(cli, ["write", "out.txt", "--content", "hi"])
+     assert result.exit_code == 0
+     assert (tmp_path / "out.txt").read_text() == "hi"
++
++def test_dry_run_write_prints_action_without_creating_file(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    runner = CliRunner()
++    result = runner.invoke(cli, ["--dry-run", "write", "out.txt", "--content", "hi"])
++    assert result.exit_code == 0
++    assert result.output == "would write out.txt\n"
++    assert not (tmp_path / "out.txt").exists()

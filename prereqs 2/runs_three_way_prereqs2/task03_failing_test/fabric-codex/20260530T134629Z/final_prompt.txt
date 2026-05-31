@@ -1,0 +1,57 @@
+1. Inspect `src/parser.py` to understand current `parse_frame` behavior.
+2. Make the minimal change in `src/parser.py` so empty input returns `None` while preserving non-empty behavior.
+3. Run the required verification commands, including the targeted test, full suite, and test diff check.
+4. Report pass/fail for each DONE WHEN condition.```bash
+sed -n '1,200p' src/parser.py
+``` 
+I’ll inspect the scoped file now.```bash
+sed -n '1,200p' src/parser.py
+``` 
+```bash
+sed -n '1,200p' src/parser.py
+```
+1. Plan:
+   1. Add an early return in `src/parser.py` so `parse_frame(b"")` returns `None`.
+   2. Preserve all existing non-empty input behavior.
+   3. Run:
+      - `pytest tests/test_parser.py::test_handles_empty`
+      - `pytest`
+      - `git diff --quiet tests/`
+
+I’m unable to directly edit files or run shell commands from this interface. The minimal scoped patch should be:
+
+```bash
+apply_patch <<'PATCH'
+*** Begin Patch
+*** Update File: src/parser.py
+@@
+ def parse_frame(data):
++    if data == b"":
++        return None
++
+*** End Patch
+PATCH
+```
+
+If `parse_frame` has type annotations, apply the same guard immediately after the function definition, for example:
+
+```python
+def parse_frame(data: bytes):
+    if data == b"":
+        return None
+
+    ...
+```
+
+Verification to run:
+
+```bash
+pytest tests/test_parser.py::test_handles_empty
+pytest
+git diff --quiet tests/
+```
+
+DONE WHEN status:
+- `pytest tests/test_parser.py::test_handles_empty` exits 0: not run here.
+- `pytest` full suite exits 0: not run here.
+- `git diff -- tests/` is empty: not verified here, but the proposed change only touches `src/parser.py`.

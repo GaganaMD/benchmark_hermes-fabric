@@ -1,0 +1,40 @@
+{
+  "task": "T2",
+  "task_id": "task02_signup_flow",
+  "variant": "fabric-codex",
+  "ts": "20260530T131849Z",
+  "total_ms": 31292,
+  "agent_ms": 0,
+  "fabric_ms": 31290,
+  "prompt_rc": 1,
+  "exit_code": 1,
+  "agent_timeout": false,
+  "prompt_timeout": false,
+  "fabric_command": "fabric -p explain_code",
+  "verification": [
+    {
+      "name": "git_diff_readonly",
+      "command": [
+        "git",
+        "diff",
+        "--"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 10,
+      "timeout": false,
+      "output": ""
+    },
+    {
+      "name": "git_status_readonly",
+      "command": [
+        "git",
+        "status",
+        "--short"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 9,
+      "timeout": false,
+      "output": ""
+    }
+  ]
+}

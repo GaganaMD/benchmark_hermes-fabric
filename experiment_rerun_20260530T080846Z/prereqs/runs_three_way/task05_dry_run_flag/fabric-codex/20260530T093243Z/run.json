@@ -1,0 +1,13 @@
+{
+  "task_id": "task05_dry_run_flag",
+  "variant": "fabric-codex",
+  "ts": "20260530T093243Z",
+  "total_ms": 46280,
+  "agent_ms": 42116,
+  "fabric_ms": 4163,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": "fabric -p codex_brief"
+}

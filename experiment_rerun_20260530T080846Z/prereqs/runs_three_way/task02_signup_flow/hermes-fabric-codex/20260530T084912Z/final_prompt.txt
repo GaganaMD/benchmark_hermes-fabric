@@ -1,0 +1,164 @@
+ANSWER:
+
+I don’t have the actual contents of `api/handlers.py`, `services/user.py`, or `db/repo.py`, so I can’t describe the exact implementation-specific flow. But in a typical layered application, the signup data flow from `api/handlers.py` through `services/user.py` into `db/repo.py` looks like this:
+
+1. `api/handlers.py` receives the signup request
+
+   This is usually the HTTP/API layer.
+
+   A new user submits signup data, for example:
+
+   ```json
+   {
+     "email": "user@example.com",
+     "password": "secret",
+     "name": "Alice"
+   }
+   ```
+
+   The handler typically does things like:
+
+   - Parse the incoming request body.
+   - Validate required fields are present.
+   - Convert request data into an internal schema or DTO.
+   - Call the user service to perform the signup.
+
+   Example flow:
+
+   ```python
+   async def signup(request):
+       data = await request.json()
+       user = await user_service.create_user(data)
+       return response.json(user)
+   ```
+
+2. `services/user.py` handles business logic
+
+   This is usually the service layer.
+
+   The service receives the signup data from the API handler and applies user-related business rules.
+
+   It may do things like:
+
+   - Normalize the email address.
+   - Check whether the email is already registered.
+   - Hash the plaintext password.
+   - Create a user domain object.
+   - Call the repository layer to persist the user.
+   - Possibly send a verification email or create an auth token.
+
+   Example flow:
+
+   ```python
+   async def create_user(data):
+       email = data["email"].lower()
+
+       existing_user = await user_repo.get_by_email(email)
+       if existing_user:
+           raise UserAlreadyExistsError()
+
+       password_hash = hash_password(data["password"])
+
+       user = {
+           "email": email,
+           "password_hash": password_hash,
+           "name": data.get("name"),
+       }
+
+       return await user_repo.create(user)
+   ```
+
+3. `db/repo.py` performs database access
+
+   This is usually the persistence/repository layer.
+
+   The repository receives already-validated, processed data from the service layer.
+
+   It usually does things like:
+
+   - Build database queries.
+   - Insert the user into the database.
+   - Fetch existing users by email.
+   - Return database records as model objects or dictionaries.
+
+   Example flow:
+
+   ```python
+   async def get_by_email(email):
+       return await db.fetch_one(
+           "SELECT * FROM users WHERE email = :email",
+           {"email": email}
+       )
+
+   async def create(user):
+       return await db.fetch_one(
+           """
+           INSERT INTO users email, password_hash, name
+           VALUES (:email, :password_hash, :name)
+           RETURNING id, email, name, created_at
+           """,
+           user
+       )
+   ```
+
+4. Response travels back up the stack
+
+   After `db/repo.py` saves the new user, the result flows back upward:
+
+   ```text
+   db/repo.py
+       returns created user record
+           ↓
+   services/user.py
+       may format/sanitize result
+           ↓
+   api/handlers.py
+       returns HTTP response
+   ```
+
+   The API handler should usually return a safe response without sensitive fields:
+
+   ```json
+   {
+     "id": 123,
+     "email": "user@example.com",
+     "name": "Alice",
+     "created_at": "2026-05-30T12:00:00Z"
+   }
+   ```
+
+Overall, the signup data flow is:
+
+```text
+Client signup request
+    ↓
+api/handlers.py
+    Parses request
+    Validates input shape
+    Calls service layer
+    ↓
+services/user.py
+    Applies business rules
+    Checks duplicate email
+    Hashes password
+    Calls repository layer
+    ↓
+db/repo.py
+    Queries database
+    Inserts new user
+    Returns created record
+    ↓
+services/user.py
+    Sanitizes or transforms result
+    ↓
+api/handlers.py
+    Sends API response
+```
+
+The key separation of responsibilities is:
+
+```text
+api/handlers.py   = HTTP/request-response handling
+services/user.py  = signup business logic
+db/repo.py        = database persistence
+```

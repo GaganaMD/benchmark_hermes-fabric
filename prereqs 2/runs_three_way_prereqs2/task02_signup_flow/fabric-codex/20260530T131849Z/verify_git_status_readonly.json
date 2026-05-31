@@ -1,0 +1,12 @@
+{
+  "name": "git_status_readonly",
+  "command": [
+    "git",
+    "status",
+    "--short"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 9,
+  "timeout": false,
+  "output": ""
+}

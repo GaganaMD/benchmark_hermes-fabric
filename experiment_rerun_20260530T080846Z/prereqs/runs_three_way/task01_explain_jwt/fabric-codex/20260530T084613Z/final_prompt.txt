@@ -1,0 +1,13 @@
+ANSWER:
+
+I don’t have the contents of `auth/jwt.py`, so I can’t accurately walk through how that specific file validates and refreshes access tokens.
+
+Please paste the contents of `auth/jwt.py`, and I’ll explain it step by step, including:
+
+- How JWT access tokens are decoded
+- What claims are validated, such as `exp`, `sub`, `iat`, `aud`, or `iss`
+- How signature verification works
+- How expired or invalid tokens are handled
+- How refresh tokens are checked
+- How new access tokens are generated
+- Any security implications or edge cases in the implementation

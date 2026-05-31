@@ -1,0 +1,3860 @@
+Reading additional input from stdin...
+OpenAI Codex v0.125.0 (research preview)
+--------
+workdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: none
+reasoning summaries: none
+session id: 019e7995-7b87-7582-94e2-cd3dc54b1f03
+--------
+user
+build a small file-management cli in `tools/fm/` with: list, move, tag, search-by-tag. python, click, pytest. tags stored in a sqlite db colocated with the managed root.
+codex
+I’ll inspect the repo layout and existing Python conventions first, then add the CLI and focused tests under the requested area.
+exec
+/bin/zsh -lc "find . -maxdepth 3 -type f \\( -name 'pyproject.toml' -o -name 'setup.cfg' -o -name 'pytest.ini' -o -name 'requirements*.txt' \\) -print" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+./requirements.txt
+
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'pwd && rg --files' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+brief.md
+README.md
+prompt.txt
+pattern.txt
+requirements.txt
+
+codex
+The fixture is minimal: just requirements and prompt material, with a clean worktree. I’m reading those now so the CLI shape matches the task expectations instead of inventing hidden assumptions.
+exec
+/bin/zsh -lc "sed -n '1,220p' README.md" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+exec
+/bin/zsh -lc "sed -n '1,220p' brief.md" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+# Task 10: fm CLI
+
+Target dir: `tools/fm/`
+
+The agent should generate the whole project from scratch here.
+
+ succeeded in 0ms:
+# TASK
+Build a small file-management CLI in `tools/fm/`. Commands: `list`, `move`, `tag`, `search-by-tag`. Built with click. Tested with pytest. Tags stored in a sqlite db colocated with the managed root.
+
+# FILES IN SCOPE
+- All files under `tools/fm/` (this directory is yours to build out)
+
+# FORBIDDEN PATHS
+- Anything outside `tools/fm/`
+
+# FILE LAYOUT (suggested)
+```
+tools/fm/
+├── __init__.py
+├── cli.py            # click entry point, `python -m tools.fm.cli`
+├── db.py             # sqlite schema and queries
+├── ops.py            # list, move, tag, search-by-tag implementations
+└── tests/
+    ├── __init__.py
+    └── test_fm.py
+```
+
+# COMMANDS
+
+## `fm list <root>`
+Print every file under `<root>` (recursive), one per line, path relative to `<root>`. Exit 0 even if empty.
+
+## `fm move <src> <dst>`
+Move the file. Update any tag records pointing at the old path (preserve all tags).
+
+## `fm tag <path> <tag>`
+Add a tag to a file. Tags are arbitrary non-empty strings. A file may have many tags. A tag may be on many files. Adding the same (path, tag) twice is a no-op.
+
+## `fm search-by-tag <root> <tag>`
+Print every file under `<root>` that has `<tag>`, path relative to `<root>`, one per line.
+
+# DB SCHEMA
+SQLite file at `<root>/.fm.db`. Created lazily on first write.
+
+```sql
+CREATE TABLE files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path TEXT UNIQUE NOT NULL
+);
+CREATE TABLE tags (
+    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
+    tag TEXT NOT NULL,
+    PRIMARY KEY (file_id, tag)
+);
+```
+
+# DONE WHEN
+- `python -m tools.fm.cli list .` works in an empty dir (prints nothing, exit 0)
+- `tag README.md draft && search-by-tag . draft` prints `README.md`
+- `move README.md NOTES.md && search-by-tag . draft` prints `NOTES.md`
+- `pytest tools/fm/tests/` exits 0 with at least 4 tests covering list, move, tag, search-by-tag
+- `python -m tools.fm.cli --help` shows all four subcommands
+
+# VERIFICATION COMMANDS
+```bash
+pytest tools/fm/tests/
+python -m tools.fm.cli --help
+```
+
+# CONSTRAINTS
+- click only, no other CLI lib.
+- stdlib `sqlite3`.
+- Paths stored in DB as relative-to-root; the CLI converts as needed.
+- `move` is atomic from the user's POV: file moved AND tags updated, or neither.
+
+exec
+/bin/zsh -lc "sed -n '1,220p' prompt.txt" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+build a small file-management cli in `tools/fm/` with: list, move, tag, search-by-tag. python, click, pytest. tags stored in a sqlite db colocated with the managed root.
+
+exec
+/bin/zsh -lc "sed -n '1,120p' requirements.txt" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+click
+pytest
+
+codex
+I’ve got the key constraint: edits stay inside `tools/fm/`, and paths in SQLite are relative to the managed root. I’m going to create a small three-module implementation plus pytest coverage for the required command behavior and atomic move/tag update.
+exec
+/bin/zsh -lc 'find tools -maxdepth 3 -print' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+tools
+tools/fm
+tools/fm/.gitkeep
+
+exec
+/bin/zsh -lc 'test -d tools/fm && find tools/fm -maxdepth 3 -type f -print || true' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+tools/fm/.gitkeep
+
+codex
+The only ambiguity is `tag` and `move` have no root argument. I’m treating the current working directory as the managed root for those commands, which matches the provided examples and keeps the database colocated at `./.fm.db`.
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli/tools/fm/__init__.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli/tools/fm/cli.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli/tools/fm/db.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli/tools/fm/ops.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli/tools/fm/tests/__init__.py
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli/tools/fm/tests/test_fm.py
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+codex
+The implementation is in place. I’m running the requested pytest and module help checks now, then I’ll tighten any failures rather than leaving them as caveats.
+exec
+/bin/zsh -lc 'python -m tools.fm.cli --help' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+Usage: python -m tools.fm.cli [OPTIONS] COMMAND [ARGS]...
+
+  Manage files and tags under a local root.
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  list           Print files under ROOT, recursively.
+  move           Move SRC to DST and preserve tags.
+  search-by-tag  Print files under ROOT that have TAG.
+  tag            Attach TAG to PATH.
+
+exec
+/bin/zsh -lc 'pytest tools/fm/tests/' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ exited 2 in 0ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+collected 0 items / 1 error
+
+==================================== ERRORS ====================================
+__________________ ERROR collecting tools/fm/tests/test_fm.py __________________
+ImportError while importing test module '/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli/tools/fm/tests/test_fm.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+../../../../../.local/share/uv/python/cpython-3.11.15-macos-aarch64-none/lib/python3.11/importlib/__init__.py:126: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tools/fm/tests/test_fm.py:7: in <module>
+    from tools.fm.cli import cli
+E   ModuleNotFoundError: No module named 'tools'
+=========================== short test summary info ============================
+ERROR tools/fm/tests/test_fm.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+=============================== 1 error in 0.04s ===============================
+
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+codex
+Pytest is using an import path that doesn’t include the repo root, while `python -m tools.fm.cli` works from the project root. I’m adding a tiny test bootstrap inside `tools/fm/tests/` so the tests exercise the same package path the CLI uses.
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli/tools/fm/tests/conftest.py
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/conftest.py b/tools/fm/tests/conftest.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2779496e47c394dc6d93da00dabea18beefec0ab
+--- /dev/null
++++ b/tools/fm/tests/conftest.py
+@@ -0,0 +1,10 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++
++ROOT = Path(__file__).resolve().parents[3]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/conftest.py b/tools/fm/tests/conftest.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2779496e47c394dc6d93da00dabea18beefec0ab
+--- /dev/null
++++ b/tools/fm/tests/conftest.py
+@@ -0,0 +1,10 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++
++ROOT = Path(__file__).resolve().parents[3]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+exec
+/bin/zsh -lc 'python -m tools.fm.cli --help' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+Usage: python -m tools.fm.cli [OPTIONS] COMMAND [ARGS]...
+
+  Manage files and tags under a local root.
+
+Options:
+  --help  Show this message and exit.
+
+Commands:
+  list           Print files under ROOT, recursively.
+  move           Move SRC to DST and preserve tags.
+  search-by-tag  Print files under ROOT that have TAG.
+  tag            Attach TAG to PATH.
+
+exec
+/bin/zsh -lc 'pytest tools/fm/tests/' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+collected 6 items
+
+tools/fm/tests/test_fm.py ......                                         [100%]
+
+============================== 6 passed in 0.01s ===============================
+
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/conftest.py b/tools/fm/tests/conftest.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2779496e47c394dc6d93da00dabea18beefec0ab
+--- /dev/null
++++ b/tools/fm/tests/conftest.py
+@@ -0,0 +1,10 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++
++ROOT = Path(__file__).resolve().parents[3]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+codex
+The requested checks pass now. I’m doing one final status/diff scan and a quick smoke run of the exact tag/search/move flow before wrapping up.
+exec
+/bin/zsh -lc 'git diff -- tools/fm' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+ succeeded in 0ms:
+?? tools/fm/__init__.py
+?? tools/fm/__pycache__/
+?? tools/fm/cli.py
+?? tools/fm/db.py
+?? tools/fm/ops.py
+?? tools/fm/tests/
+
+exec
+/bin/zsh -lc 'tmpdir=$(mktemp -d); printf '"'draft' > \""'$tmpdir/README.md"; (cd "$tmpdir" && PYTHONPATH='"'/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli' python -m tools.fm.cli tag README.md draft && PYTHONPATH='/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli' python -m tools.fm.cli search-by-tag . draft && PYTHONPATH='/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli' python -m tools.fm.cli move README.md NOTES.md && PYTHONPATH='/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli' python -m tools.fm.cli search-by-tag . draft); rm -rf \""'$tmpdir"' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+README.md
+NOTES.md
+
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/conftest.py b/tools/fm/tests/conftest.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2779496e47c394dc6d93da00dabea18beefec0ab
+--- /dev/null
++++ b/tools/fm/tests/conftest.py
+@@ -0,0 +1,10 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++
++ROOT = Path(__file__).resolve().parents[3]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+codex
+The smoke flow produced the expected `README.md` before moving and `NOTES.md` after moving. I also noticed generated `__pycache__` files from the test run, so I’m cleaning those out before the final status.
+exec
+/bin/zsh -lc 'find tools/fm -maxdepth 3 -type f -print | sort' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+tools/fm/.gitkeep
+tools/fm/__init__.py
+tools/fm/__pycache__/__init__.cpython-311.pyc
+tools/fm/__pycache__/cli.cpython-311.pyc
+tools/fm/__pycache__/db.cpython-311.pyc
+tools/fm/__pycache__/ops.cpython-311.pyc
+tools/fm/cli.py
+tools/fm/db.py
+tools/fm/ops.py
+tools/fm/tests/__init__.py
+tools/fm/tests/__pycache__/__init__.cpython-311.pyc
+tools/fm/tests/__pycache__/conftest.cpython-311-pytest-9.0.3.pyc
+tools/fm/tests/__pycache__/test_fm.cpython-311-pytest-9.0.3.pyc
+tools/fm/tests/conftest.py
+tools/fm/tests/test_fm.py
+
+exec
+/bin/zsh -lc 'find tools/fm -type d -name __pycache__ -prune -exec rm -rf {} +' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/conftest.py b/tools/fm/tests/conftest.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2779496e47c394dc6d93da00dabea18beefec0ab
+--- /dev/null
++++ b/tools/fm/tests/conftest.py
+@@ -0,0 +1,10 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++
++ROOT = Path(__file__).resolve().parents[3]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+exec
+/bin/zsh -lc 'find tools/fm -type d -name __pycache__ -print' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+exec
+/bin/zsh -lc 'git status --short' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task10_fm_cli
+ succeeded in 0ms:
+?? tools/fm/__init__.py
+?? tools/fm/cli.py
+?? tools/fm/db.py
+?? tools/fm/ops.py
+?? tools/fm/tests/
+
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/conftest.py b/tools/fm/tests/conftest.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2779496e47c394dc6d93da00dabea18beefec0ab
+--- /dev/null
++++ b/tools/fm/tests/conftest.py
+@@ -0,0 +1,10 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++
++ROOT = Path(__file__).resolve().parents[3]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+codex
+Implemented the file-management CLI under `tools/fm/`:
+
+- `python -m tools.fm.cli list <root>`
+- `python -m tools.fm.cli move <src> <dst>`
+- `python -m tools.fm.cli tag <path> <tag>`
+- `python -m tools.fm.cli search-by-tag <root> <tag>`
+
+Tags are stored in `<root>/.fm.db` using `sqlite3`, with paths stored relative to the managed root. For `tag` and `move`, the managed root is the current working directory, matching the examples.
+
+Verification passed:
+
+```bash
+pytest tools/fm/tests/
+# 6 passed
+
+python -m tools.fm.cli --help
+# shows list, move, search-by-tag, tag
+```
+
+I also smoke-tested the required flow: tag `README.md`, search returns `README.md`, move to `NOTES.md`, search returns `NOTES.md`.
+diff --git a/tools/fm/__init__.py b/tools/fm/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..55e77729e5691d011488b825e236b1c652d6aa11
+--- /dev/null
++++ b/tools/fm/__init__.py
+@@ -0,0 +1,2 @@
++"""Small file-management CLI package."""
++
+diff --git a/tools/fm/cli.py b/tools/fm/cli.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..3cb94f09bc53344d10bf8c0f82d777638767fb79
+--- /dev/null
++++ b/tools/fm/cli.py
+@@ -0,0 +1,50 @@
++from __future__ import annotations
++
++from pathlib import Path
++
++import click
++
++from . import ops
++
++
++@click.group()
++def cli() -> None:
++    """Manage files and tags under a local root."""
++
++
++@cli.command("list")
++@click.argument("root", type=click.Path(path_type=Path))
++def list_command(root: Path) -> None:
++    """Print files under ROOT, recursively."""
++    for relative_path in ops.list_files(root):
++        click.echo(relative_path)
++
++
++@cli.command("move")
++@click.argument("src", type=click.Path(path_type=Path))
++@click.argument("dst", type=click.Path(path_type=Path))
++def move_command(src: Path, dst: Path) -> None:
++    """Move SRC to DST and preserve tags."""
++    ops.move_file(src, dst)
++
++
++@cli.command("tag")
++@click.argument("path", type=click.Path(path_type=Path))
++@click.argument("tag")
++def tag_command(path: Path, tag: str) -> None:
++    """Attach TAG to PATH."""
++    ops.tag_file(path, tag)
++
++
++@cli.command("search-by-tag")
++@click.argument("root", type=click.Path(path_type=Path))
++@click.argument("tag")
++def search_by_tag_command(root: Path, tag: str) -> None:
++    """Print files under ROOT that have TAG."""
++    for relative_path in ops.search_by_tag(root, tag):
++        click.echo(relative_path)
++
++
++if __name__ == "__main__":
++    cli()
++
+diff --git a/tools/fm/db.py b/tools/fm/db.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..4c9d40cf9f4b22eec270e5379131384d2bc92197
+--- /dev/null
++++ b/tools/fm/db.py
+@@ -0,0 +1,91 @@
++from __future__ import annotations
++
++import sqlite3
++from contextlib import contextmanager
++from pathlib import Path
++from typing import Iterator
++
++
++DB_NAME = ".fm.db"
++
++
++SCHEMA = """
++CREATE TABLE IF NOT EXISTS files (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    path TEXT UNIQUE NOT NULL
++);
++CREATE TABLE IF NOT EXISTS tags (
++    file_id INTEGER NOT NULL REFERENCES files(id) ON DELETE CASCADE,
++    tag TEXT NOT NULL,
++    PRIMARY KEY (file_id, tag)
++);
++"""
++
++
++def db_path(root: Path) -> Path:
++    return root / DB_NAME
++
++
++@contextmanager
++def connect(root: Path) -> Iterator[sqlite3.Connection]:
++    conn = sqlite3.connect(db_path(root))
++    conn.execute("PRAGMA foreign_keys = ON")
++    conn.executescript(SCHEMA)
++    try:
++        yield conn
++    finally:
++        conn.close()
++
++
++def add_tag(root: Path, relative_path: str, tag: str) -> None:
++    with connect(root) as conn:
++        with conn:
++            cursor = conn.execute(
++                "INSERT OR IGNORE INTO files (path) VALUES (?)",
++                (relative_path,),
++            )
++            if cursor.lastrowid:
++                file_id = cursor.lastrowid
++            else:
++                file_id = conn.execute(
++                    "SELECT id FROM files WHERE path = ?",
++                    (relative_path,),
++                ).fetchone()[0]
++
++            conn.execute(
++                "INSERT OR IGNORE INTO tags (file_id, tag) VALUES (?, ?)",
++                (file_id, tag),
++            )
++
++
++def paths_for_tag(root: Path, tag: str) -> list[str]:
++    path = db_path(root)
++    if not path.exists():
++        return []
++
++    with connect(root) as conn:
++        rows = conn.execute(
++            """
++            SELECT files.path
++            FROM files
++            JOIN tags ON tags.file_id = files.id
++            WHERE tags.tag = ?
++            ORDER BY files.path
++            """,
++            (tag,),
++        ).fetchall()
++    return [row[0] for row in rows]
++
++
++def move_path(root: Path, old_relative_path: str, new_relative_path: str) -> None:
++    path = db_path(root)
++    if not path.exists():
++        return
++
++    with connect(root) as conn:
++        with conn:
++            conn.execute(
++                "UPDATE files SET path = ? WHERE path = ?",
++                (new_relative_path, old_relative_path),
++            )
++
+diff --git a/tools/fm/ops.py b/tools/fm/ops.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..03a589becc20ac2c330e74b07c932e7150aa2f3f
+--- /dev/null
++++ b/tools/fm/ops.py
+@@ -0,0 +1,82 @@
++from __future__ import annotations
++
++import shutil
++from pathlib import Path
++
++from . import db
++
++
++def resolve_root(root: str | Path) -> Path:
++    return Path(root).resolve()
++
++
++def relative_to_root(path: str | Path, root: Path) -> str:
++    resolved = Path(path).resolve()
++    try:
++        relative = resolved.relative_to(root)
++    except ValueError as exc:
++        raise ValueError(f"{resolved} is outside managed root {root}") from exc
++    return relative.as_posix()
++
++
++def list_files(root: str | Path) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++
++    paths: list[str] = []
++    for path in resolved_root.rglob("*"):
++        if path.is_file() and path.name != db.DB_NAME:
++            paths.append(path.relative_to(resolved_root).as_posix())
++    return sorted(paths)
++
++
++def tag_file(path: str | Path, tag: str, root: str | Path = ".") -> None:
++    if not tag:
++        raise ValueError("tag must be a non-empty string")
++
++    resolved_root = resolve_root(root)
++    relative_path = relative_to_root(path, resolved_root)
++    file_path = resolved_root / relative_path
++    if not file_path.is_file():
++        raise FileNotFoundError(file_path)
++
++    db.add_tag(resolved_root, relative_path, tag)
++
++
++def search_by_tag(root: str | Path, tag: str) -> list[str]:
++    resolved_root = resolve_root(root)
++    if not resolved_root.exists():
++        raise FileNotFoundError(resolved_root)
++    if not resolved_root.is_dir():
++        raise NotADirectoryError(resolved_root)
++    return [
++        relative_path
++        for relative_path in db.paths_for_tag(resolved_root, tag)
++        if (resolved_root / relative_path).is_file()
++    ]
++
++
++def move_file(src: str | Path, dst: str | Path, root: str | Path = ".") -> None:
++    resolved_root = resolve_root(root)
++    old_relative_path = relative_to_root(src, resolved_root)
++    new_relative_path = relative_to_root(dst, resolved_root)
++    src_path = resolved_root / old_relative_path
++    dst_path = resolved_root / new_relative_path
++
++    if not src_path.is_file():
++        raise FileNotFoundError(src_path)
++    if dst_path.exists():
++        raise FileExistsError(dst_path)
++    if not dst_path.parent.exists():
++        raise FileNotFoundError(dst_path.parent)
++
++    shutil.move(str(src_path), str(dst_path))
++    try:
++        db.move_path(resolved_root, old_relative_path, new_relative_path)
++    except Exception:
++        shutil.move(str(dst_path), str(src_path))
++        raise
++
+diff --git a/tools/fm/tests/__init__.py b/tools/fm/tests/__init__.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..011bbd6e97f0a7b6d344f1424e8c19003bbafa1f
+--- /dev/null
++++ b/tools/fm/tests/__init__.py
+@@ -0,0 +1,2 @@
++"""Tests for the fm CLI."""
++
+diff --git a/tools/fm/tests/conftest.py b/tools/fm/tests/conftest.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..2779496e47c394dc6d93da00dabea18beefec0ab
+--- /dev/null
++++ b/tools/fm/tests/conftest.py
+@@ -0,0 +1,10 @@
++from __future__ import annotations
++
++import sys
++from pathlib import Path
++
++
++ROOT = Path(__file__).resolve().parents[3]
++if str(ROOT) not in sys.path:
++    sys.path.insert(0, str(ROOT))
++
+diff --git a/tools/fm/tests/test_fm.py b/tools/fm/tests/test_fm.py
+new file mode 100644
+index 0000000000000000000000000000000000000000..a77695a9c3435c477c1f11b2929e0058f1c4dd47
+--- /dev/null
++++ b/tools/fm/tests/test_fm.py
+@@ -0,0 +1,78 @@
++from __future__ import annotations
++
++import sqlite3
++
++from click.testing import CliRunner
++
++from tools.fm.cli import cli
++
++
++def test_list_prints_files_relative_to_root(tmp_path):
++    (tmp_path / "a.txt").write_text("a")
++    (tmp_path / "nested").mkdir()
++    (tmp_path / "nested" / "b.txt").write_text("b")
++
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output.splitlines() == ["a.txt", "nested/b.txt"]
++
++
++def test_list_empty_dir_prints_nothing(tmp_path):
++    result = CliRunner().invoke(cli, ["list", str(tmp_path)])
++
++    assert result.exit_code == 0
++    assert result.output == ""
++    assert not (tmp_path / ".fm.db").exists()
++
++
++def test_tag_and_search_by_tag_round_trip(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++
++    tag_result = CliRunner().invoke(cli, ["tag", "README.md", "draft"])
++    search_result = CliRunner().invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert tag_result.exit_code == 0
++    assert search_result.exit_code == 0
++    assert search_result.output == "README.md\n"
++
++
++def test_tag_is_idempotent(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++
++    with sqlite3.connect(tmp_path / ".fm.db") as conn:
++        count = conn.execute("SELECT COUNT(*) FROM tags").fetchone()[0]
++    assert count == 1
++
++
++def test_move_updates_tagged_path(tmp_path, monkeypatch):
++    monkeypatch.chdir(tmp_path)
++    (tmp_path / "README.md").write_text("draft")
++    runner = CliRunner()
++
++    assert runner.invoke(cli, ["tag", "README.md", "draft"]).exit_code == 0
++    move_result = runner.invoke(cli, ["move", "README.md", "NOTES.md"])
++    search_result = runner.invoke(cli, ["search-by-tag", ".", "draft"])
++
++    assert move_result.exit_code == 0
++    assert not (tmp_path / "README.md").exists()
++    assert (tmp_path / "NOTES.md").read_text() == "draft"
++    assert search_result.exit_code == 0
++    assert search_result.output == "NOTES.md\n"
++
++
++def test_help_shows_all_subcommands():
++    result = CliRunner().invoke(cli, ["--help"])
++
++    assert result.exit_code == 0
++    assert "list" in result.output
++    assert "move" in result.output
++    assert "tag" in result.output
++    assert "search-by-tag" in result.output
++
+
+2026-05-30T15:53:57.278339Z ERROR codex_core::session: failed to record rollout items: thread 019e7995-7b87-7582-94e2-cd3dc54b1f03 not found
+tokens used
+53,555
+Implemented the file-management CLI under `tools/fm/`:
+
+- `python -m tools.fm.cli list <root>`
+- `python -m tools.fm.cli move <src> <dst>`
+- `python -m tools.fm.cli tag <path> <tag>`
+- `python -m tools.fm.cli search-by-tag <root> <tag>`
+
+Tags are stored in `<root>/.fm.db` using `sqlite3`, with paths stored relative to the managed root. For `tag` and `move`, the managed root is the current working directory, matching the examples.
+
+Verification passed:
+
+```bash
+pytest tools/fm/tests/
+# 6 passed
+
+python -m tools.fm.cli --help
+# shows list, move, search-by-tag, tag
+```
+
+I also smoke-tested the required flow: tag `README.md`, search returns `README.md`, move to `NOTES.md`, search returns `NOTES.md`.

@@ -1,0 +1,207 @@
+Reading additional input from stdin...
+OpenAI Codex v0.125.0 (research preview)
+--------
+workdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+model: gpt-5.5
+provider: openai
+approval: never
+sandbox: danger-full-access
+reasoning effort: none
+reasoning summaries: none
+session id: 019e7958-ace2-7052-861b-7f2639e37c9a
+--------
+user
+You are Codex running inside this repository. The text below is the exact Fabric-enhanced prompt/context. Do not treat any statement like 'I cannot edit/run commands' as applying to you; you can inspect files, edit files, and run verification in this repo. Complete the underlying task and report verification.
+
+1. Inspect `src/parser.py` to understand current `parse_frame` behavior.
+2. Make the minimal scoped change in `src/parser.py` so `parse_frame(b"")` returns `None` while preserving non-empty behavior.
+3. Run the required verification commands.
+4. Report each DONE WHEN condition status.Inspecting `src/parser.py`.I’m sorry, but I can’t apply edits or run commands in this environment because no shell/tool access is available in this conversation.
+
+codex
+I’ll inspect the parser and tests, then make the smallest change in `src/parser.py` and run the verification commands from the repo.
+exec
+/bin/zsh -lc ls in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+exec
+/bin/zsh -lc "sed -n '1,220p' src/parser.py" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+ succeeded in 0ms:
+__pycache__
+brief.md
+conftest.py
+pattern.txt
+prompt.txt
+src
+tests
+
+ succeeded in 0ms:
+"""Frame parser. Currently crashes on empty input."""
+from typing import Optional
+
+def parse_frame(data: bytes) -> Optional[dict]:
+    # BUG: indexing into empty bytes raises IndexError.
+    # Spec (per tests): empty input must return None.
+    header = data[0]
+    payload = data[1:]
+    return {"header": header, "payload": payload}
+
+exec
+/bin/zsh -lc 'rg -n "parse_frame|DONE WHEN|pytest|unittest" -S .' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+ succeeded in 0ms:
+./src/parser.py:4:def parse_frame(data: bytes) -> Optional[dict]:
+./brief.md:2:Make `tests/test_parser.py::test_handles_empty` pass. The test expects `parse_frame(b"")` to return `None`.
+./brief.md:11:# DONE WHEN
+./brief.md:12:- `pytest tests/test_parser.py::test_handles_empty` exits 0
+./brief.md:13:- `pytest` (full suite) exits 0
+./brief.md:18:pytest -x
+./tests/test_parser.py:1:from src.parser import parse_frame
+./tests/test_parser.py:4:    result = parse_frame(b"\x01hello")
+./tests/test_parser.py:10:    assert parse_frame(b"") is None
+
+codex
+The current implementation unconditionally reads `data[0]`, so the fix is just an early return for empty bytes before the existing non-empty path.
+exec
+/bin/zsh -lc "sed -n '1,120p' tests/test_parser.py && sed -n '1,120p' brief.md" in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+ succeeded in 0ms:
+from src.parser import parse_frame
+
+def test_handles_basic():
+    result = parse_frame(b"\x01hello")
+    assert result["header"] == 0x01
+    assert result["payload"] == b"hello"
+
+def test_handles_empty():
+    # empty input must return None, not crash
+    assert parse_frame(b"") is None
+# TASK
+Make `tests/test_parser.py::test_handles_empty` pass. The test expects `parse_frame(b"")` to return `None`.
+
+# FILES IN SCOPE
+- `src/parser.py`
+
+# FORBIDDEN PATHS
+- `tests/` — any change here is a failure
+- Anything outside `src/parser.py`
+
+# DONE WHEN
+- `pytest tests/test_parser.py::test_handles_empty` exits 0
+- `pytest` (full suite) exits 0
+- `git diff -- tests/` is empty
+
+# VERIFICATION COMMANDS
+```bash
+pytest -x
+git diff --quiet tests/
+```
+
+# CONSTRAINTS
+- Preserve existing behavior on non-empty input.
+- No new dependencies.
+
+apply patch
+patch: completed
+/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test/src/parser.py
+diff --git a/src/parser.py b/src/parser.py
+index e33561cd86bc5e6004945949429538677783f824..e152510d44e76c22ed817f741d7225ac44574b90
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -2,6 +2,9 @@
+ from typing import Optional
+ 
+ def parse_frame(data: bytes) -> Optional[dict]:
++    if not data:
++        return None
++
+     # BUG: indexing into empty bytes raises IndexError.
+     # Spec (per tests): empty input must return None.
+     header = data[0]
+
+diff --git a/src/parser.py b/src/parser.py
+index e33561cd86bc5e6004945949429538677783f824..e152510d44e76c22ed817f741d7225ac44574b90
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -2,6 +2,9 @@
+ from typing import Optional
+ 
+ def parse_frame(data: bytes) -> Optional[dict]:
++    if not data:
++        return None
++
+     # BUG: indexing into empty bytes raises IndexError.
+     # Spec (per tests): empty input must return None.
+     header = data[0]
+
+codex
+`src/parser.py` now returns `None` only for empty input and leaves the existing parsing code intact for non-empty bytes. I’m running the targeted test, the full suite, and the tests diff check now.
+exec
+/bin/zsh -lc 'git diff --quiet tests/' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+ succeeded in 0ms:
+exec
+/bin/zsh -lc pytest in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+exec
+/bin/zsh -lc 'pytest tests/test_parser.py::test_handles_empty' in /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+ succeeded in 0ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+collected 2 items
+
+tests/test_parser.py ..                                                  [100%]
+
+============================== 2 passed in 0.00s ===============================
+
+ succeeded in 0ms:
+============================= test session starts ==============================
+platform darwin -- Python 3.11.15, pytest-9.0.3, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/fixtures/task03_failing_test
+collected 1 item
+
+tests/test_parser.py .                                                   [100%]
+
+============================== 1 passed in 0.00s ===============================
+
+diff --git a/src/parser.py b/src/parser.py
+index e33561cd86bc5e6004945949429538677783f824..e152510d44e76c22ed817f741d7225ac44574b90
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -2,6 +2,9 @@
+ from typing import Optional
+ 
+ def parse_frame(data: bytes) -> Optional[dict]:
++    if not data:
++        return None
++
+     # BUG: indexing into empty bytes raises IndexError.
+     # Spec (per tests): empty input must return None.
+     header = data[0]
+
+codex
+Implemented the minimal change in [src/parser.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task03_failing_test/src/parser.py:4): `parse_frame` now returns `None` for empty input before the existing non-empty parsing path.
+
+DONE WHEN status:
+- `pytest tests/test_parser.py::test_handles_empty` exits 0: DONE
+- `pytest` full suite exits 0: DONE, 2 passed
+- `git diff -- tests/` is empty: DONE via `git diff --quiet tests/`
+diff --git a/src/parser.py b/src/parser.py
+index e33561cd86bc5e6004945949429538677783f824..e152510d44e76c22ed817f741d7225ac44574b90
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -2,6 +2,9 @@
+ from typing import Optional
+ 
+ def parse_frame(data: bytes) -> Optional[dict]:
++    if not data:
++        return None
++
+     # BUG: indexing into empty bytes raises IndexError.
+     # Spec (per tests): empty input must return None.
+     header = data[0]
+
+2026-05-30T14:45:44.623851Z ERROR codex_core::session: failed to record rollout items: thread 019e7958-ace2-7052-861b-7f2639e37c9a not found
+tokens used
+18,015
+Implemented the minimal change in [src/parser.py](/Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs%202/fixtures/task03_failing_test/src/parser.py:4): `parse_frame` now returns `None` for empty input before the existing non-empty parsing path.
+
+DONE WHEN status:
+- `pytest tests/test_parser.py::test_handles_empty` exits 0: DONE
+- `pytest` full suite exits 0: DONE, 2 passed
+- `git diff -- tests/` is empty: DONE via `git diff --quiet tests/`

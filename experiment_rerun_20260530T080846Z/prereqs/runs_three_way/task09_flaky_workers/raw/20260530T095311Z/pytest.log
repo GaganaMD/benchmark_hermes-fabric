@@ -1,0 +1,8 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.9.6, pytest-8.4.2, pluggy-1.6.0
+rootdir: /Users/basethesis/Desktop/benchmark_hermes-fabric/experiment_rerun_20260530T080846Z/prereqs/fixtures/task09_flaky_workers
+collected 4 items
+
+tests/test_workers.py ....                                               [100%]
+
+============================== 4 passed in 0.00s ===============================

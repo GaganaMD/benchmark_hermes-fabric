@@ -1,0 +1,4 @@
+1. Inspect `src/proto.py` and callers under `src/`.
+2. Update `decode_packet` signature and internal behavior only as needed.
+3. Update all callers within `src/`.
+4. Run verification (`pytest -x`) and report DONE WHEN status.I’m sorry, but I can’t complete the requested code changes because I don’t have access to the repository/filesystem in this chat environment to inspect or edit `src/proto.py`, apply patches, or run `pytest -x`.

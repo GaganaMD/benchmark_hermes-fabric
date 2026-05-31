@@ -1,0 +1,83 @@
+diff --git a/src/config.py b/src/config.py
+index 3601cc9..feb76d5 100644
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,74 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML support and deprecated INI fallback."""
+ import configparser
++import ast
+ from pathlib import Path
++import warnings
+ 
+-def load_config(path: str = "config.ini") -> dict:
++try:
++    import tomllib
++except ModuleNotFoundError:
++    tomllib = None
++
++
++def load_config(path=None) -> dict:
++    if path is not None:
++        config_path = Path(path)
++        if not config_path.exists():
++            raise FileNotFoundError(path)
++        if config_path.suffix == ".toml":
++            return _load_toml(config_path)
++        return _load_ini(config_path)
++
++    toml_path = Path("config.toml")
++    if toml_path.exists():
++        return _load_toml(toml_path)
++
++    ini_path = Path("config.ini")
++    if ini_path.exists():
++        return _load_ini(ini_path)
++
++    raise FileNotFoundError("config.toml")
++
++
++def _load_toml(path: Path) -> dict:
++    if tomllib is None:
++        return _load_simple_toml(path)
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def _load_simple_toml(path: Path) -> dict:
++    config = {}
++    section = None
++    for raw_line in path.read_text().splitlines():
++        line = raw_line.strip()
++        if not line or line.startswith("#"):
++            continue
++        if line.startswith("[") and line.endswith("]"):
++            section = config.setdefault(line[1:-1], {})
++            continue
++        if section is None or "=" not in line:
++            raise ValueError(f"Invalid TOML line: {raw_line}")
++        key, value = line.split("=", 1)
++        section[key.strip()] = _parse_simple_toml_value(value.strip())
++    return config
++
++
++def _parse_simple_toml_value(value: str):
++    if value in {"true", "false"}:
++        return value == "true"
++    try:
++        return ast.literal_eval(value)
++    except (SyntaxError, ValueError):
++        return value
++
++
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "config.ini loading is deprecated; migrate to nested config.toml",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}

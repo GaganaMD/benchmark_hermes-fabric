@@ -1,0 +1,12 @@
+{
+  "name": "git_diff_readonly",
+  "command": [
+    "git",
+    "diff",
+    "--"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 10,
+  "timeout": false,
+  "output": ""
+}

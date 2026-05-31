@@ -1,0 +1,31 @@
+diff --git a/src/parser.py b/src/parser.py
+index f1f8c4d..5a78674 100644
+--- a/src/parser.py
++++ b/src/parser.py
+@@ -1,5 +1,8 @@
+ """Frame parser. Missing input validation."""
+ def parse_frame(data: bytes) -> dict:
++    if not data:
++        raise ValueError("frame data must not be empty")
++
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+diff --git a/tests/test_parser.py b/tests/test_parser.py
+index 093112f..f90f936 100644
+--- a/tests/test_parser.py
++++ b/tests/test_parser.py
+@@ -1,4 +1,5 @@
+ from src.parser import parse_frame
++import pytest
+ 
+ def test_handles_basic():
+     result = parse_frame(b"\x01hello")
+@@ -9,3 +10,7 @@ def test_handles_multi_byte_payload():
+     result = parse_frame(b"\xff\x00\x01\x02")
+     assert result["header"] == 0xff
+     assert result["payload"] == b"\x00\x01\x02"
++
++def test_empty_input_raises_value_error():
++    with pytest.raises(ValueError, match="must not be empty"):
++        parse_frame(b"")

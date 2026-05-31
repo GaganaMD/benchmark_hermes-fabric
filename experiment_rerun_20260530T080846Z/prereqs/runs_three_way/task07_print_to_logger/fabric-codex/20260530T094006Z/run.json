@@ -1,0 +1,13 @@
+{
+  "task_id": "task07_print_to_logger",
+  "variant": "fabric-codex",
+  "ts": "20260530T094006Z",
+  "total_ms": 50893,
+  "agent_ms": 46746,
+  "fabric_ms": 4145,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "na",
+  "fabric_command": "fabric -p codex_brief"
+}

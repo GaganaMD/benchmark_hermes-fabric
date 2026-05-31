@@ -1,0 +1,63 @@
+  ┊ review diff
+a/src/reporter.py → b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+a/src/ingest.py → b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+DONE WHEN status: PASS
+
+Files changed:
+- src/ingest.py
+  - Added `import logging`
+  - Added module-level `logger = logging.getLogger(__name__)`
+  - Replaced both `print(...)` calls with `logger.info(...)`
+
+- src/reporter.py
+  - Added `import logging`
+  - Added module-level `logger = logging.getLogger(__name__)`
+  - Replaced both `print(...)` calls with `logger.info(...)`
+
+Forbidden paths:
+- `scripts/` was not modified.
+- `src/__init__.py` was not modified.
+
+Verification run:
+- Attempted the specified `rg` verification, but `rg` is not installed in this environment:
+  - `/bin/bash: rg: command not found`
+- Attempted `brew install ripgrep`, but Homebrew directories are not writable for this user.
+- Ran equivalent verification with Python plus the remaining required commands:
+
+Results:
+- `src print hits: []`
+- `scripts print hits:` still shows the original prints in `scripts/setup.py`
+- `git diff --quiet scripts/` passed
+- `python -c "import src.ingest, src.reporter"` passed
+- `git status --short` shows only:
+  - `M src/ingest.py`
+  - `M src/reporter.py`

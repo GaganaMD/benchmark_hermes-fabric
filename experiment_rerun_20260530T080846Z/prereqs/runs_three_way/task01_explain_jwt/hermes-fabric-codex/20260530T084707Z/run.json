@@ -1,0 +1,13 @@
+{
+  "task_id": "task01_explain_jwt",
+  "variant": "hermes-fabric-codex",
+  "ts": "20260530T084707Z",
+  "total_ms": 55562,
+  "agent_ms": 45420,
+  "fabric_ms": 10140,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "na",
+  "fabric_command": "fabric -p explain_code"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "scan_print_src",
+  "command": [
+    "python3",
+    "<fallback AST scan print calls>"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 19,
+  "timeout": false,
+  "output": "rg unavailable; used Python AST fallback.\n"
+}

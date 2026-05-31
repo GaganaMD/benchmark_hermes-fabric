@@ -1,0 +1,41 @@
+{
+  "task": "T5",
+  "task_id": "task05_dry_run_flag",
+  "variant": "fabric-codex",
+  "ts": "20260530T145548Z",
+  "total_ms": 303748,
+  "agent_ms": 300023,
+  "fabric_ms": 3723,
+  "prompt_rc": 0,
+  "exit_code": 124,
+  "agent_timeout": true,
+  "prompt_timeout": false,
+  "fabric_command": "fabric -p codex_brief",
+  "verification": [
+    {
+      "name": "pytest_cli",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "tests/test_cli.py",
+        "-q"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 82,
+      "timeout": false,
+      "output": "...                                                                      [100%]\n3 passed in 0.01s\n"
+    },
+    {
+      "name": "dry_run_no_write",
+      "command": [
+        "python3",
+        "<dry-run probe>"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 35,
+      "timeout": false,
+      "output": "$ /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/.venv/bin/python3 -m src.cli --dry-run write dryrun_probe.txt --content probe\nrc= 0\nwould write dryrun_probe.txt\n\ndryrun_probe_exists= False\n"
+    }
+  ]
+}

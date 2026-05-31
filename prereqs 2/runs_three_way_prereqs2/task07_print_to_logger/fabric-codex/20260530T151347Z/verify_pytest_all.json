@@ -1,0 +1,13 @@
+{
+  "name": "pytest_all",
+  "command": [
+    "python3",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "exit_code": 5,
+  "elapsed_ms": 76,
+  "timeout": false,
+  "output": "\nno tests ran in 0.00s\n"
+}

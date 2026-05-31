@@ -1,0 +1,13 @@
+diff --git a/src/proto.py b/src/proto.py
+index 5280e9b..d4bb8e6 100644
+--- a/src/proto.py
++++ b/src/proto.py
+@@ -1,5 +1,7 @@
+ """Packet decoder."""
+-def decode_packet(buf: bytes) -> dict:
++def decode_packet(buf, *, strict=False) -> dict:
+     if len(buf) < 2:
++        if strict:
++            raise ValueError("short packet")
+         return {"ok": False, "reason": "short"}
+     return {"ok": True, "type": buf[0], "len": buf[1], "body": buf[2:]}

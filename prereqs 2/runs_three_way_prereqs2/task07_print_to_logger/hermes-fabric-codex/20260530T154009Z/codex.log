@@ -1,0 +1,95 @@
+  ┊ review diff
+a/src/reporter.py → b/src/reporter.py
+@@ -1,5 +1,11 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def report(rows):
+-    print(f"reporter: summarizing {len(rows)} rows")
++    logger.info(f"reporter: summarizing {len(rows)} rows")
+     summary = {"n": len(rows)}
+-    print("reporter: done")
++    logger.info("reporter: done")
+     return summary
+a/src/ingest.py → b/src/ingest.py
+@@ -1,6 +1,12 @@
++import logging
++
++
++logger = logging.getLogger(__name__)
++
++
+ def ingest(path):
+-    print(f"ingest: opening {path}")
++    logger.info(f"ingest: opening {path}")
+     with open(path) as f:
+         rows = f.readlines()
+-    print(f"ingest: read {len(rows)} rows")
++    logger.info(f"ingest: read {len(rows)} rows")
+     return rows
+Completed.
+
+Files changed:
+- src/ingest.py
+  - Added:
+    - import logging
+    - logger = logging.getLogger(__name__)
+  - Replaced both print(...) calls with logger.info(...)
+
+- src/reporter.py
+  - Added:
+    - import logging
+    - logger = logging.getLogger(__name__)
+  - Replaced both print(...) calls with logger.info(...)
+
+Files intentionally not changed:
+- src/__init__.py
+- scripts/setup.py
+
+Verification run:
+- Ran specified combined verification command:
+  - ! rg -q "print\(" src/ && git diff --quiet scripts/ && python -c "import src.ingest, src.reporter"
+  - Result: rg is not installed in this environment: /bin/bash: line 2: rg: command not found
+  - Note: because the command starts with shell !, the missing rg command was negated and returned exit code 0, so I treated this as unreliable.
+
+- Ran specified commands individually where possible:
+  - git diff --quiet scripts/
+    - PASS
+  - python -c "import src.ingest, src.reporter"
+    - PASS
+
+- Recovery verification because rg was unavailable:
+  - Used repository search/Python fallback to check print( occurrences.
+  - src/: no print( hits
+  - scripts/: original print calls still present:
+    - scripts/setup.py:2: print("setup: bootstrapping dev environment")
+    - scripts/setup.py:3: print("setup: ok")
+
+DONE WHEN conditions:
+- rg "print\(" src/ returns no hits:
+  - PASS semantically via fallback search.
+  - Could not literally verify with rg because rg is not installed.
+
+- rg "print\(" scripts/ shows the original prints untouched:
+  - PASS semantically via fallback search/read.
+  - Could not literally verify with rg because rg is not installed.
+
+- Every modified file imports logging and defines a module-level logger:
+  - PASS
+
+- python -c "import src.ingest, src.reporter" succeeds:
+  - PASS
+
+- git diff --quiet scripts/:
+  - PASS
+
+Recovery behavior:
+- Attempted to install ripgrep with Homebrew, but Homebrew directories were not writable by the current user.
+- Used Python/search fallback to verify the same conditions.
+- A temporary src/__pycache__/ directory was created during py_compile/import verification and then removed.
+- Final git status only shows:
+  - M src/ingest.py
+  - M src/reporter.py

@@ -1,0 +1,13 @@
+{
+  "task_id": "task03_failing_test",
+  "variant": "raw",
+  "ts": "20260530T085024Z",
+  "total_ms": 36866,
+  "agent_ms": 36866,
+  "fabric_ms": null,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "0",
+  "fabric_command": ""
+}

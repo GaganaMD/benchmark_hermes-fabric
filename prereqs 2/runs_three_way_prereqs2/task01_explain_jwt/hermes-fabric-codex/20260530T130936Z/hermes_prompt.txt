@@ -1,0 +1,49 @@
+You are the Hermes orchestration layer for a coding-agent benchmark. Use available file and terminal tools to complete the task in this repository. Preserve benchmark constraints exactly. Inspect the repository before editing. Run the task-specific verification commands before finalizing. When finished, summarize files changed, verification run, and any recovery behavior.
+
+## PURPOSE
+
+`auth/jwt.py` issues JWT access/refresh token pairs, validates access tokens, and exchanges valid refresh tokens for new token pairs. It uses a shared HS256 secret and fixed TTLs: 15 minutes for access tokens and 7 days for refresh tokens.
+
+## FLOW
+
+1. `issue(sub)`
+   1. Captures the current Unix timestamp as `now`. `auth/jwt.py:13`
+   2. Creates an access token with `sub`, `iat`, and `exp = now + ACCESS_TTL`. `auth/jwt.py:14` `auth/jwt.py:15`
+   3. Signs the access token using `SECRET` and `ALGO`. `auth/jwt.py:16`
+   4. Creates a refresh token with `sub`, `iat`, `exp = now + REFRESH_TTL`, and `typ = "refresh"`. `auth/jwt.py:18` `auth/jwt.py:19`
+   5. Signs the refresh token using `SECRET` and `ALGO`. `auth/jwt.py:20`
+   6. Returns both tokens as `{"access": access, "refresh": refresh}`. `auth/jwt.py:22`
+
+2. `validate(token)`
+   1. Attempts to decode the token using `SECRET` and allowed algorithm `ALGO`. `auth/jwt.py:27` `auth/jwt.py:28`
+   2. If decoding fails because the token is expired, returns `None`. `auth/jwt.py:29` `auth/jwt.py:30`
+   3. If decoding fails for any other invalid-token reason, returns `None`. `auth/jwt.py:31` `auth/jwt.py:32`
+   4. If the decoded token has `typ == "refresh"`, rejects it and returns `None`. `auth/jwt.py:33` `auth/jwt.py:34`
+   5. Otherwise, returns the decoded claims dictionary. `auth/jwt.py:35`
+
+3. `refresh(refresh_token)`
+   1. Attempts to decode the refresh token using `SECRET` and allowed algorithm `ALGO`. `auth/jwt.py:40` `auth/jwt.py:41`
+   2. If decoding fails for an invalid-token reason, returns `None`. `auth/jwt.py:42` `auth/jwt.py:43`
+   3. If the decoded token does not have `typ == "refresh"`, returns `None`. `auth/jwt.py:44` `auth/jwt.py:45`
+   4. If it is a valid refresh token, calls `issue(claims["sub"])` to return a new access/refresh pair. `auth/jwt.py:46`
+
+## EDGE CASES
+
+- Expired access token passed to `validate` — catches `pyjwt.ExpiredSignatureError`, returns `None`.
+- Malformed, incorrectly signed, or otherwise invalid access token passed to `validate` — catches `pyjwt.InvalidTokenError`, returns `None`.
+- Refresh token passed to `validate` — detected by `claims.get("typ") == "refresh"`, returns `None`.
+- Expired refresh token passed to `refresh` — caught as `pyjwt.InvalidTokenError`, returns `None`.
+- Malformed, incorrectly signed, or otherwise invalid refresh token passed to `refresh` — catches `pyjwt.InvalidTokenError`, returns `None`.
+- Access token or token without `typ == "refresh"` passed to `refresh` — returns `None`.
+- Valid refresh token missing `sub` passed to `refresh` — raises `KeyError` from `claims["sub"]`.
+
+## GOTCHAS
+
+- Refresh tokens cannot be used as access tokens: `validate` rejects any token with `typ == "refresh"`.
+- Access tokens issued by this module do not include a `typ` claim; `validate` accepts tokens as long as `typ` is not `"refresh"`.
+- `refresh` requires `typ == "refresh"`; a token missing `typ` is rejected there.
+- Expired access tokens and invalid access tokens both produce the same sentinel result: `None`.
+- Expired refresh tokens and invalid refresh tokens also produce `None`.
+- Changing `SECRET` will invalidate previously issued tokens because both `validate` and `refresh` decode using the current `SECRET`.
+- No custom clock skew or leeway is configured in this module; decoding uses PyJWT’s default expiration handling.
+- `refresh` assumes a valid refresh token contains `sub`; if that claim is absent, it does not return `None` and instead raises `KeyError`.

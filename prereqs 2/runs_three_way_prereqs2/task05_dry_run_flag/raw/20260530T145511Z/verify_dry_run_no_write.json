@@ -1,0 +1,11 @@
+{
+  "name": "dry_run_no_write",
+  "command": [
+    "python3",
+    "<dry-run probe>"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 34,
+  "timeout": false,
+  "output": "$ /Users/basethesis/Desktop/benchmark_hermes-fabric/prereqs 2/.venv/bin/python3 -m src.cli --dry-run write dryrun_probe.txt --content probe\nrc= 0\nwould write dryrun_probe.txt\n\ndryrun_probe_exists= False\n"
+}

@@ -1,0 +1,121 @@
+## ENTRYPOINT
+
+`api/handlers.py:4` — `post_signup(request: dict)` is the signup request entrypoint.
+
+The handler extracts and normalizes `email` from `request.get("email")` at `api/handlers.py:5`, extracts `password` at `api/handlers.py:6`, validates required fields at `api/handlers.py:7`, validates minimum password length at `api/handlers.py:9`, then calls the service layer at `api/handlers.py:12`.
+
+## CALL CHAIN
+
+1. `api/handlers.py:12` — `post_signup()` → `services/user.py:12` `signup_user(email, password)`
+
+2. `services/user.py:13` — `signup_user()` → `db/repo.py:21` `get_user_by_email(email)`
+
+3. `services/user.py:17` — `signup_user()` → `db/repo.py:26` `insert_user(email=email, password_hash=pw_hash, salt=salt.hex())`
+
+The password hash is produced in `services/user.py:16` by calling `_hash_password(password, salt)`, whose implementation is at `services/user.py:9-10`.
+
+## STATE MUTATIONS
+
+1. Repository connection/schema initialization may create the `users` table.
+
+   `db/repo.py:16-19` defines `_conn()`, which connects to `users.db` at `db/repo.py:17` and executes `_SCHEMA` at `db/repo.py:18`.
+
+   SQL statement: `db/repo.py:6-14`
+
+   `CREATE TABLE IF NOT EXISTS users (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       email TEXT UNIQUE NOT NULL,
+       password_hash TEXT NOT NULL,
+       salt TEXT NOT NULL,
+       created_at TEXT DEFAULT CURRENT_TIMESTAMP
+   )`
+
+   This can happen during duplicate lookup because `get_user_by_email()` opens `_conn()` at `db/repo.py:22`.
+
+2. The duplicate-email check reads but does not insert a user.
+
+   `db/repo.py:23` executes:
+
+   `SELECT id, email FROM users WHERE email = ?`
+
+   It returns `{"id": row[0], "email": row[1]}` when a row exists, otherwise `None`, at `db/repo.py:24`.
+
+3. If no existing user is found, the service generates credentials for persistence.
+
+   `services/user.py:15` generates a 16-byte salt with `secrets.token_bytes(16)`.
+   `services/user.py:16` hashes the password with `_hash_password(password, salt)`.
+   `_hash_password()` uses PBKDF2-HMAC-SHA256 with 200,000 iterations at `services/user.py:9-10`.
+   `services/user.py:17` passes `email`, `password_hash`, and `salt.hex()` into `insert_user()`.
+
+4. The new user row is inserted.
+
+   `db/repo.py:27` opens `_conn()` inside `insert_user()`.
+   `db/repo.py:28-31` executes the insert.
+
+   SQL statement: `db/repo.py:29`
+
+   `INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)`
+
+   Bound values: `email`, `password_hash`, and `salt`, from `db/repo.py:30`.
+
+   The inserted row receives an autoincrement `id` from the schema at `db/repo.py:8`, and `created_at` defaults to `CURRENT_TIMESTAMP` from `db/repo.py:12`.
+
+   `db/repo.py:32` returns `cur.lastrowid` to the service.
+
+## EXIT PATHS
+
+1. `400` missing fields
+
+   Response shaped at `api/handlers.py:8`.
+
+   Trigger condition: after extracting `email` at `api/handlers.py:5` and `password` at `api/handlers.py:6`, `api/handlers.py:7` returns this path when `not email or not password`.
+
+   Response:
+
+   `{"status": 400, "error": "missing fields"}`
+
+2. `400` password too short
+
+   Response shaped at `api/handlers.py:10`.
+
+   Trigger condition: `len(password) < 8` at `api/handlers.py:9`.
+
+   Response:
+
+   `{"status": 400, "error": "password too short"}`
+
+3. `409` email already registered
+
+   Response shaped at `api/handlers.py:14`.
+
+   Trigger condition: `signup_user()` calls `get_user_by_email(email)` at `services/user.py:13`; if that returns a truthy value, `signup_user()` raises `UserExists(email)` at `services/user.py:14`; `post_signup()` catches `UserExists` at `api/handlers.py:13`.
+
+   Response:
+
+   `{"status": 409, "error": "email already registered"}`
+
+4. `201` user created
+
+   Response shaped at `api/handlers.py:15`.
+
+   Trigger condition: `signup_user(email, password)` returns a `user_id` to `post_signup()` at `api/handlers.py:12`; `signup_user()` returns the result of `insert_user(...)` at `services/user.py:17`; `insert_user()` returns `cur.lastrowid` at `db/repo.py:32`.
+
+   Response:
+
+   `{"status": 201, "user_id": user_id}`
+
+## FILES CHANGED
+
+None. The task constraint said not to modify any file, and no files were edited.
+
+## VERIFICATION RUN
+
+Read-only verification performed:
+
+- Read `brief.md`, `prompt.txt`, `pattern.txt`
+- Read `api/handlers.py`
+- Read `services/user.py`
+- Read `db/repo.py`
+- Ran `git status --short`, which returned no output, confirming no working-tree changes.
+
+session_id: 20260530_014931_fd1532

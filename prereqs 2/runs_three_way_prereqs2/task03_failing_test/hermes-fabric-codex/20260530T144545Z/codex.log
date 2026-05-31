@@ -1,0 +1,48 @@
+  ┊ review diff
+a/src/parser.py → b/src/parser.py
+@@ -4,6 +4,8 @@
+ def parse_frame(data: bytes) -> Optional[dict]:
+     # BUG: indexing into empty bytes raises IndexError.
+     # Spec (per tests): empty input must return None.
++    if not data:
++        return None
+     header = data[0]
+     payload = data[1:]
+     return {"header": header, "payload": payload}
+Completed.
+
+Files changed:
+- src/parser.py
+  - Added a minimal empty-input guard:
+    - if not data: return None
+  - Non-empty behavior is preserved: header remains data[0], payload remains data[1:].
+
+Verification run:
+- Reproduced failure first:
+  - pytest tests/test_parser.py::test_handles_empty -q
+  - Result before fix: failed with IndexError from data[0]
+- DONE WHEN checks:
+  - pytest tests/test_parser.py::test_handles_empty -q
+  - Result: 1 passed
+  - pytest -q
+  - Result: 2 passed
+  - pytest -x
+  - Result: 2 passed
+  - git diff --quiet tests/
+  - Result: exit 0
+- Final clean constraint check:
+  - PYTHONDONTWRITEBYTECODE=1 pytest -x && git diff --quiet tests/ && git status --short
+  - Result: tests passed, tests diff clean, only src/parser.py modified
+
+DONE WHEN status:
+- pytest tests/test_parser.py::test_handles_empty exits 0: DONE
+- pytest full suite exits 0: DONE
+- git diff -- tests/ is empty: DONE
+
+Recovery behavior:
+- Running pytest generated Python bytecode cache files.
+- I initially removed cache directories, noticed some existing cache files were tracked, then restored the tracked cache files with git restore.
+- Final working tree shows only:
+  - M src/parser.py
+
+session_id: 20260530_074545_c247df

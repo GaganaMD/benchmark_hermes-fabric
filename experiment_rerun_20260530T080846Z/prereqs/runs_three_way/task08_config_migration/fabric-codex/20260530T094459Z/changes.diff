@@ -1,0 +1,48 @@
+diff --git a/src/config.py b/src/config.py
+index 3601cc9..ad3931e 100644
+--- a/src/config.py
++++ b/src/config.py
+@@ -1,10 +1,39 @@
+-"""Flat INI config loader."""
++"""Config loader with TOML-primary discovery and deprecated INI fallback."""
+ import configparser
+ from pathlib import Path
++import tomllib
++import warnings
+ 
+-def load_config(path: str = "config.ini") -> dict:
++
++def _load_ini(path: Path) -> dict:
++    warnings.warn(
++        "Loading config.ini is deprecated; migrate configuration to config.toml.",
++        DeprecationWarning,
++        stacklevel=2,
++    )
+     parser = configparser.ConfigParser()
+-    if not Path(path).exists():
+-        raise FileNotFoundError(path)
+     parser.read(path)
+     return {section: dict(parser[section]) for section in parser.sections()}
++
++
++def _load_toml(path: Path) -> dict:
++    with path.open("rb") as config_file:
++        return tomllib.load(config_file)
++
++
++def load_config(path: str | None = None) -> dict:
++    if path is None:
++        toml_path = Path("config.toml")
++        ini_path = Path("config.ini")
++        if toml_path.exists():
++            return _load_toml(toml_path)
++        if ini_path.exists():
++            return _load_ini(ini_path)
++        raise FileNotFoundError("config.toml")
++
++    config_path = Path(path)
++    if not config_path.exists():
++        raise FileNotFoundError(path)
++    if config_path.suffix == ".toml":
++        return _load_toml(config_path)
++    return _load_ini(config_path)

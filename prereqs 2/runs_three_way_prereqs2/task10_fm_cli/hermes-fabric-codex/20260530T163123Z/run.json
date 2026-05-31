@@ -1,0 +1,40 @@
+{
+  "task": "T10",
+  "task_id": "task10_fm_cli",
+  "variant": "hermes-fabric-codex",
+  "ts": "20260530T163123Z",
+  "total_ms": 176252,
+  "agent_ms": 176251,
+  "fabric_ms": 0,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "prompt_timeout": false,
+  "fabric_command": "fabric -p create_prd | fabric -p improve_prompt | fabric -p codex_brief",
+  "verification": [
+    {
+      "name": "pytest_all",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 147,
+      "timeout": false,
+      "output": "......                                                                   [100%]\n6 passed in 0.02s\n"
+    },
+    {
+      "name": "fm_cli_shape",
+      "command": [
+        "python3",
+        "<tools/fm shape probe>"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 23,
+      "timeout": false,
+      "output": "tools/fm exists True\n__init__.py True\ncli.py True\ncommand_marker list True\ncommand_marker move True\ncommand_marker tag True\ncommand_marker search-by-tag True\nsqlite_marker True\ncolocated_marker True\n"
+    }
+  ]
+}

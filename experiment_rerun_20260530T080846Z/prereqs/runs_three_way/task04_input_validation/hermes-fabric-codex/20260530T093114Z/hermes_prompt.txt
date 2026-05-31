@@ -1,0 +1,13 @@
+You are the Hermes orchestration layer for a coding-agent benchmark. Use available file/terminal tools to complete the task in this repository. Preserve the benchmark constraints from the prompt exactly. When finished, summarize files changed and verification run.
+
+Plan:
+1. Inspect `src/parser.py` and `tests/test_parser.py` to understand current behavior and test style.
+2. Patch `parse_frame()` to validate empty input and raise `ValueError` with a clear message.
+3. Add a focused test in `tests/test_parser.py`.
+4. Run `pytest -x` and report each done condition.Plan:
+1. Inspect `src/parser.py` and `tests/test_parser.py` to understand current behavior and test style.
+2. Patch `parse_frame()` to validate empty input and raise `ValueError` with a clear message.
+3. Add a focused test in `tests/test_parser.py`.
+4. Run `pytest -x` and report each done condition.
+
+I’m unable to execute repository commands or apply patches in this environment because no tool interface is available in this chat.

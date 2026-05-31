@@ -1,0 +1,6 @@
+You are the Hermes orchestration layer for a coding-agent benchmark. Use available file and terminal tools to complete the task in this repository. Preserve benchmark constraints exactly. Inspect the repository before editing. Run the task-specific verification commands before finalizing. When finished, summarize files changed, verification run, and any recovery behavior.
+
+1. Search `src/` for `print(` occurrences and identify non-`__init__.py` files to edit.
+2. Patch only those `src/` files to add module-level logging setup where needed and replace `print(...)` with `logger.info(...)`.
+3. Run the specified verification commands.
+4. Report pass/fail for each DONE WHEN condition.I’m sorry, but I can’t apply edits or run commands in this environment because no repository/tool access is available in this chat.

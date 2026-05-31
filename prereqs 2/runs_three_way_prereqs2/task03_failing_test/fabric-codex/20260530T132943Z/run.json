@@ -1,0 +1,43 @@
+{
+  "task": "T3",
+  "task_id": "task03_failing_test",
+  "variant": "fabric-codex",
+  "ts": "20260530T132943Z",
+  "total_ms": 69085,
+  "agent_ms": 0,
+  "fabric_ms": 69084,
+  "prompt_rc": 1,
+  "exit_code": 1,
+  "agent_timeout": false,
+  "prompt_timeout": false,
+  "fabric_command": "fabric -p codex_brief",
+  "verification": [
+    {
+      "name": "pytest_target",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "tests/test_parser.py::test_handles_empty",
+        "-q"
+      ],
+      "exit_code": 1,
+      "elapsed_ms": 29,
+      "timeout": false,
+      "output": "/Library/Developer/CommandLineTools/usr/bin/python3: No module named pytest\n"
+    },
+    {
+      "name": "git_diff_tests",
+      "command": [
+        "git",
+        "diff",
+        "--",
+        "tests/"
+      ],
+      "exit_code": 0,
+      "elapsed_ms": 6,
+      "timeout": false,
+      "output": ""
+    }
+  ]
+}

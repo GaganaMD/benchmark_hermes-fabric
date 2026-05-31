@@ -1,0 +1,13 @@
+{
+  "task_id": "task01_explain_jwt",
+  "variant": "raw",
+  "ts": "20260530T084519Z",
+  "total_ms": 54320,
+  "agent_ms": 54320,
+  "fabric_ms": null,
+  "prompt_rc": 0,
+  "exit_code": 0,
+  "agent_timeout": false,
+  "tests_exit_code": "na",
+  "fabric_command": ""
+}

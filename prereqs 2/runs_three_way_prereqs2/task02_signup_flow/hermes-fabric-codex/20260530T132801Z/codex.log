@@ -1,0 +1,81 @@
+## ENTRYPOINT
+
+`api/handlers.py:4` — `post_signup(request: dict)` is the request entrypoint for signup. It receives the request dict and shapes all HTTP-style responses in this handler (`api/handlers.py:4`, `api/handlers.py:8`, `api/handlers.py:10`, `api/handlers.py:14`, `api/handlers.py:15`).
+
+## CALL CHAIN
+
+1. `api/handlers.py:12` — `post_signup()` → `services/user.py:12` `signup_user(email, password)`
+
+2. `services/user.py:13` — `signup_user()` → `db/repo.py:21` `get_user_by_email(email)`
+
+3. `services/user.py:16` — `signup_user()` → `services/user.py:9` `_hash_password(password, salt)`
+
+4. `services/user.py:17` — `signup_user()` → `db/repo.py:26` `insert_user(email=email, password_hash=pw_hash, salt=salt.hex())`
+
+5. `db/repo.py:22` — `get_user_by_email()` → `db/repo.py:16` `_conn()`
+
+6. `db/repo.py:27` — `insert_user()` → `db/repo.py:16` `_conn()`
+
+## STATE MUTATIONS
+
+1. Database connection/schema setup happens whenever `_conn()` is called.
+
+   `_conn()` opens SQLite database `users.db` at `db/repo.py:17`, then executes the schema at `db/repo.py:18`.
+
+   SQL statement defined at `db/repo.py:6` through `db/repo.py:14`:
+
+   `CREATE TABLE IF NOT EXISTS users (
+       id INTEGER PRIMARY KEY AUTOINCREMENT,
+       email TEXT UNIQUE NOT NULL,
+       password_hash TEXT NOT NULL,
+       salt TEXT NOT NULL,
+       created_at TEXT DEFAULT CURRENT_TIMESTAMP
+   )`
+
+   This can happen during the duplicate-email lookup via `get_user_by_email()` (`services/user.py:13`, `db/repo.py:21`, `db/repo.py:22`) and again during insert via `insert_user()` (`services/user.py:17`, `db/repo.py:26`, `db/repo.py:27`).
+
+2. Before insertion, `signup_user()` generates a 16-byte salt at `services/user.py:15`, hashes the password with PBKDF2-HMAC-SHA256 at `services/user.py:9` through `services/user.py:10`, and passes `email`, `password_hash`, and `salt.hex()` into `insert_user()` at `services/user.py:17`.
+
+3. User row insertion happens in `insert_user()` at `db/repo.py:26`.
+
+   SQL statement at `db/repo.py:28` through `db/repo.py:31`:
+
+   `INSERT INTO users (email, password_hash, salt) VALUES (?, ?, ?)`
+
+   Values written are `(email, password_hash, salt)` at `db/repo.py:30`.
+
+4. The inserted row id is returned from SQLite via `cur.lastrowid` at `db/repo.py:32`, returned by `signup_user()` at `services/user.py:17`, assigned to `user_id` in the handler at `api/handlers.py:12`, and included in the success response at `api/handlers.py:15`.
+
+## EXIT PATHS
+
+1. `400 missing fields`
+
+   Response shaped at `api/handlers.py:8`.
+
+   Trigger condition: after request parsing, `email` is empty or `password` is empty at `api/handlers.py:5` through `api/handlers.py:7`.
+
+2. `400 password too short`
+
+   Response shaped at `api/handlers.py:10`.
+
+   Trigger condition: `len(password) < 8` at `api/handlers.py:9`.
+
+3. `409 email already registered`
+
+   Response shaped at `api/handlers.py:14`.
+
+   Trigger condition: `signup_user()` calls `get_user_by_email(email)` at `services/user.py:13`; `get_user_by_email()` queries `SELECT id, email FROM users WHERE email = ?` at `db/repo.py:23`; if a row exists, it returns a dict at `db/repo.py:24`; then `signup_user()` raises `UserExists(email)` at `services/user.py:14`; the handler catches `UserExists` at `api/handlers.py:13` and returns the 409 response at `api/handlers.py:14`.
+
+4. `201 user created`
+
+   Response shaped at `api/handlers.py:15`.
+
+   Trigger condition: request has non-empty email/password at `api/handlers.py:5` through `api/handlers.py:7`, password length is at least 8 at `api/handlers.py:9`, `signup_user()` does not raise `UserExists` at `api/handlers.py:12` through `api/handlers.py:14`, and `insert_user()` returns `cur.lastrowid` at `db/repo.py:32`, which is returned through `services/user.py:17` and included as `user_id` at `api/handlers.py:15`.
+
+Files changed: none.
+
+Verification run: task-specific verification says “None — read-only” in `brief.md:22` through `brief.md:23`. I also checked `git status --short && git diff --stat`; it returned no output, confirming no repository modifications.
+
+Recovery behavior: no recovery was needed. The reported TCP connection-reset message did not block local repository inspection or read-only completion.
+
+session_id: 20260530_062802_d92798

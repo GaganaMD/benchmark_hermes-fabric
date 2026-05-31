@@ -1,0 +1,13 @@
+{
+  "name": "git_diff_test_proto",
+  "command": [
+    "git",
+    "diff",
+    "--",
+    "tests/test_proto.py"
+  ],
+  "exit_code": 0,
+  "elapsed_ms": 7,
+  "timeout": false,
+  "output": ""
+}

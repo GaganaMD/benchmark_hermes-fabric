@@ -1,0 +1,28 @@
+You are the Hermes orchestration layer for a coding-agent benchmark. Use available file and terminal tools to complete the task in this repository. Preserve benchmark constraints exactly. Inspect the repository before editing. Run the task-specific verification commands before finalizing. When finished, summarize files changed, verification run, and any recovery behavior.
+
+Plan:
+1. Inspect `src/config.py` and existing config tests to determine current API and expected shape.
+2. Make a surgical update to config loading to prefer TOML and warn on INI fallback.
+3. Add new tests without modifying existing tests.
+4. Run `pytest -x` and verify `test_loads_ini` was not modified.lexams code:"cmd": "sed -n '1,200p' src/config.py && printf '\\n--- tests ---\\n' && sed -n '1,200p' tests/test_config.py", "timeout": 120000}{"cmd": "pwd && ls"}Plan:
+1. Inspect the repository files in scope.
+2. Patch only `src/config.py` and add a new TOML-focused test file.
+3. Run `pytest -x` and a diff check for the existing `test_loads_ini`. 
+Plan:
+1. Inspect current files before editing.
+2. Apply the smallest compatible implementation and add tests.
+3. Run required verification commands.Plan:
+1. Inspect `src/config.py` and `tests/test_config.py`.
+2. Patch only scoped files using `apply_patch`.
+3. Run `pytest -x`.
+4. Verify existing `test_loads_ini` was not changed.
+
+I’m unable to complete the edit because this runtime session does not expose file inspection, shell execution, or `apply_patch` tools. Without those, I cannot safely inspect the current implementation, apply scoped changes, or run the required verification commands.
+
+DONE WHEN status:
+- `load_config` prefers `config.toml` when present: not completed.
+- `load_config` falls back to `config.ini` when TOML is absent: not completed.
+- INI loading emits `DeprecationWarning` mentioning TOML migration: not completed.
+- Existing `test_loads_ini` remains unmodified: not verified.
+- At least 3 new tests added: not completed.
+- `pytest -x` exits successfully: not verified.
