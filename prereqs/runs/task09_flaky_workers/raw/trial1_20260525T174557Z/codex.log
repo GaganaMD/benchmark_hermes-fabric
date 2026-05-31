@@ -1,4 +1,0 @@
-+ cd fixtures/task09_flaky_workers
-+ codex exec --full-auto 'the background workers are flaky. make them more reliable.'
-warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
-Reading additional input from stdin...

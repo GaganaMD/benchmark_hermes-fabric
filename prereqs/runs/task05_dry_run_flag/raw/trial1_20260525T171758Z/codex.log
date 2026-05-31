@@ -1,4 +1,0 @@
-+ cd fixtures/task05_dry_run_flag
-+ codex exec --full-auto 'add a `--dry-run` flag to the CLI in `src/cli.py` that prevents any file writes. add a test in `tests/test_cli.py`.'
-warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
-Reading additional input from stdin...

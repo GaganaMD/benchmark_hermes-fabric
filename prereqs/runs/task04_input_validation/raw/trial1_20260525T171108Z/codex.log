@@ -1,4 +1,0 @@
-+ cd fixtures/task04_input_validation
-+ codex exec --full-auto '`parse_frame()` in `src/parser.py` crashes on empty input. add input validation that raises `ValueError` with a clear message, and add a test in `tests/test_parser.py` that proves it.'
-warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
-Reading additional input from stdin...

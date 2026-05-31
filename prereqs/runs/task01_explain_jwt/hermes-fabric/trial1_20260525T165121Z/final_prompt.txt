@@ -1,8 +1,0 @@
-ANSWER:
-I can walk you through it, but I don’t have the actual `auth/jwt.py` file yet.
-
-Please paste the contents of `auth/jwt.py` (or the relevant functions), and I’ll break down exactly:
-
-- how token validation is performed (signature, expiry, claims, issuer/audience, etc.)
-- how refresh logic works (refresh token checks, rotation, revocation handling)
-- the control flow for success/failure paths and returned errors

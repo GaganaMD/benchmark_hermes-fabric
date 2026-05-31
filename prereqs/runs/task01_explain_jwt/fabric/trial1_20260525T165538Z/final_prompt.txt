@@ -1,9 +1,0 @@
-ANSWER:
-I don’t have the actual `auth/jwt.py` file content yet, so I can’t walk through its exact logic line by line.
-
-Please paste the file (or the relevant functions), and I’ll break down precisely:
-
-- how token signature/claims are validated,
-- which checks are enforced (`exp`, `nbf`, `iss`, `aud`, etc.),
-- how refresh is handled (refresh token rotation, expiry, revocation),
-- and the exact control flow/error paths in your implementation.

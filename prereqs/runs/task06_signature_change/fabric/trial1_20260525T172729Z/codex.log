@@ -1,9 +1,0 @@
-+ cd fixtures/task06_signature_change
-+ codex exec --full-auto '1. Update `src/proto.py` function signature from `decode_packet(buf)` to `decode_packet(buf, *, strict=False)` while preserving existing behavior when `strict` is not provided.
-2. Find and update all call sites within `src/` to match the new signature compatibility (only where needed).
-3. Run verification (`pytest -x`) and confirm `tests/test_proto.py` still passes.
-4. Report pass/fail against the done criteria.
-
-I’m missing the repository file contents in this environment, so I can’t safely apply patches yet. Please provide access to the project files (or paste `src/proto.py` and relevant `src/` callers), and I’ll make the exact scoped edits with `apply_patch` and run verification as requested.'
-warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
-Reading additional input from stdin...

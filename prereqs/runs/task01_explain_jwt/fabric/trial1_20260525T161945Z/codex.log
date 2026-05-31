@@ -1,7 +1,0 @@
-+ cd fixtures/task01_explain_jwt
-+ codex exec --full-auto 'ANSWER:
-I don’t have the actual `auth/jwt.py` file in your message, so I can’t give a line-by-line walkthrough yet.
-
-If you paste the contents of `auth/jwt.py`, I’ll walk you through exactly how it validates tokens and how refresh flow is implemented (including claims checks, signature verification, expiry handling, refresh token rotation, and failure paths).'
-warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
-Reading additional input from stdin...

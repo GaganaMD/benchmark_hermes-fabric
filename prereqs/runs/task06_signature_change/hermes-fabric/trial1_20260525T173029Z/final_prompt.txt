@@ -1,7 +1,0 @@
-Plan:
-1. Inspect `src/proto.py` and all `src/` callers of `decode_packet` to determine required signature and call-site updates.
-2. Edit `src/proto.py` to change `decode_packet(buf)` to `decode_packet(buf, *, strict=False)` with no behavior regressions.
-3. Update all call sites within `src/` to match the new callable interface (only where needed).
-4. Run verification (`pytest -x`) and report status against done criteria.
-
-I’m ready to apply the patch, but I need to inspect repository files first to do this safely. Please allow me to run the file discovery/edit steps (or share the relevant file contents), and I’ll proceed exactly per your required workflow.

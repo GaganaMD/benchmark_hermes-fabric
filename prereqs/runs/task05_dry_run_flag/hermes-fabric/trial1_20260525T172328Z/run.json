@@ -1,8 +1,0 @@
-{
-  "task_id": "task05_dry_run_flag",
-  "variant": "hermes-fabric",
-  "trial": 1,
-  "ts": "20260525T172328Z",
-  "total_ms": 68024,
-  "tests_exit_code": "0"
-}

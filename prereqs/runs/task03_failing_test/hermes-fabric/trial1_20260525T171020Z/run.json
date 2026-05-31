@@ -1,8 +1,0 @@
-{
-  "task_id": "task03_failing_test",
-  "variant": "hermes-fabric",
-  "trial": 1,
-  "ts": "20260525T171020Z",
-  "total_ms": 43370,
-  "tests_exit_code": "0"
-}

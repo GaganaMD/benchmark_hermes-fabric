@@ -1,8 +1,0 @@
-{
-  "task_id": "task03_failing_test",
-  "variant": "fabric-stitch",
-  "trial": 1,
-  "ts": "20260526T103504Z",
-  "total_ms": 105804,
-  "tests_exit_code": "0"
-}

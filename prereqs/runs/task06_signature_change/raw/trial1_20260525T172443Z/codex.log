@@ -1,4 +1,0 @@
-+ cd fixtures/task06_signature_change
-+ codex exec --full-auto 'change `decode_packet(buf)` to `decode_packet(buf, *, strict=False)` in `src/proto.py`. update all callers within `src/`. tests in `tests/test_proto.py` must still pass without modification.'
-warning: `--full-auto` is deprecated; use `--sandbox workspace-write` instead.
-Reading additional input from stdin...

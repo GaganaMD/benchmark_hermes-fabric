@@ -1,7 +1,0 @@
-raw|runs/task04_input_validation/raw/trial1_20260525T105131Z|124
-brief|runs/task04_input_validation/brief/trial1_20260525T105631Z|124
-fabric|runs/task04_input_validation/fabric/trial1_20260525T110131Z|124
-fabric-improve|runs/task04_input_validation/fabric-improve/trial1_20260525T110631Z|124
-fabric-stitch|runs/task04_input_validation/fabric-stitch/trial1_20260525T111132Z|124
-hermes|runs/task04_input_validation/hermes/trial1_20260525T111632Z|2
-hermes-fabric|runs/task04_input_validation/hermes-fabric/trial1_20260525T111634Z|2

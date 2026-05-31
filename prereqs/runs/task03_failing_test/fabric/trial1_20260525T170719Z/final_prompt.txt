@@ -1,8 +1,0 @@
-1. Reproduce the failure for `tests/test_parser.py::test_handles_empty`.
-2. Inspect parser implementation files (non-test code) to find why empty input isn’t handled as expected.
-3. Make a minimal fix via `apply_patch`.
-4. Run verification commands (`pytest -x`) and confirm the targeted test passes.
-5. Report pass/fail against the done condition.
-
-I can’t safely edit yet because I don’t have the repository file tree or the explicit non-test file(s) in scope.  
-Given your rule set (“touch only files in FILES IN SCOPE”) and “don’t change the test,” please confirm which source file(s) I’m allowed to modify (e.g., `parser.py`, `src/parser.py`, etc.), and I’ll proceed immediately.

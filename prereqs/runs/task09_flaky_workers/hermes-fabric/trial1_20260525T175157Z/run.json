@@ -1,8 +1,0 @@
-{
-  "task_id": "task09_flaky_workers",
-  "variant": "hermes-fabric",
-  "trial": 1,
-  "ts": "20260525T175157Z",
-  "total_ms": 67617,
-  "tests_exit_code": "0"
-}

@@ -1,2 +1,0 @@
-+ cd fixtures/task03_failing_test
-+ hermes -z '`tests/test_parser.py::test_handles_empty` is failing. fix it. don'\''t change the test.' chat

@@ -1,6 +1,0 @@
-1. Identify all `print(...)` usages under `src/`, and determine which files need a `logger` setup/import.
-2. Replace each `print(...)` call with `logger.info(...)` in those files only.
-3. Add missing logging imports/`logger = logging.getLogger(__name__)` where needed.
-4. Run verification (`pytest -x`) and report status against the done condition.
-
-I can proceed, but I need to inspect the repository files first to safely apply scoped patches.

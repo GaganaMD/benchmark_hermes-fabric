@@ -1,8 +1,0 @@
-{
-  "task_id": "task03_failing_test",
-  "variant": "fabric-improve",
-  "trial": 1,
-  "ts": "20260526T103341Z",
-  "total_ms": 58749,
-  "tests_exit_code": "0"
-}

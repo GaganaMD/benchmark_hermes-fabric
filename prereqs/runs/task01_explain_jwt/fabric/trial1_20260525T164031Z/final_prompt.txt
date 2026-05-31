@@ -1,8 +1,0 @@
-ANSWER:
-I don’t have the contents of `auth/jwt.py` in your message, so I can’t walk through its exact logic line-by-line yet.
-
-If you paste that file (or the relevant functions), I can give you a precise walkthrough of:
-
-- how it validates access tokens (signature, expiry, issuer/audience, token type, revocation checks, etc.)
-- how refresh works (refresh token verification, rotation, blacklist/invalidation, new access token issuance)
-- edge cases and failure paths (expired, malformed, wrong token type, replay attempts)

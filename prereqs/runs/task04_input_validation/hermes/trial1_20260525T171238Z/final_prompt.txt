@@ -1,1 +1,0 @@
-`parse_frame()` in `src/parser.py` crashes on empty input. add input validation that raises `ValueError` with a clear message, and add a test in `tests/test_parser.py` that proves it.
