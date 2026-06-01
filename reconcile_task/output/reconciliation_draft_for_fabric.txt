@@ -1,0 +1,101 @@
+Tally vs Blinkit reconciliation draft
+Method: matched Tally Vch No. to Blinkit Inv No; compared Tally Debit with Blinkit Amount. Difference = Blinkit - Tally. Differences <= INR 1.00 counted as rounding matches. TDS reversal rows in Blinkit are shown separately, not treated as invoice matches.
+
+Summary counts:
+- tally_invoice_rows: 58
+- blinkit_bill_rows_excluding_tds: 30
+- blinkit_tds_reversal_rows: 15
+- matched_rounding_ok: 26
+- amount_mismatch: 3
+- probable_invoice_number_mismatch: 1
+- raw_tally_only: 29; unresolved_tally_only_after_invoice_mismatch: 28
+- raw_blinkit_only: 1; unresolved_blinkit_only_after_invoice_mismatch: 0
+- Tally total from file: INR 3449187.48
+- Blinkit invoice total excl TDS: INR 2324215.04
+- Blinkit TDS reversal total: INR 157.32
+- Blinkit total incl TDS: INR 2324372.36
+
+Amount mismatches:
+- NY/23-24/091: Tally 65050.00 (27-May-23), Blinkit 65085.58 (17/08/2023), diff 35.58, remarks: Amount Mismatch
+- NY/23-24/308: Tally 265155.00 (6-Oct-23), Blinkit 265156.29 (15/12/2023), diff 1.29, remarks: 
+- NY/23-24/444: Tally 231804.00 (29-Feb-24), Blinkit 231805.70 (22/03/2024), diff 1.70, remarks: 
+
+Probable invoice number mismatch:
+- Tally NY/23-24/023 vs Blinkit NY/23-24/028: amounts 240981.00 vs 240981.55, diff 0.55; same/near-same amount but invoice no differs
+
+Unresolved Tally-only invoices:
+- NY/23-24/097: 31-May-23, INR 43239.00, remarks: Inv not found in Blintit
+- NY/23-24/098: 31-May-23, INR 59098.00, remarks: Inv not found in Blintit
+- NY/23-24/161: 29-Jun-23, INR 55347.00, remarks: Inv not found in Blintit
+- NY/23-24/208: 17-Jul-23, INR 32910.00, remarks: Inv not found in Blintit
+- NY/23-24/214: 21-Jul-23, INR 17277.00, remarks: Inv not found in Blintit
+- NY/23-24/239: 27-Jul-23, INR 9757.00, remarks: Inv not found in Blintit
+- NY/23-24/240: 31-Jul-23, INR 34321.00, remarks: Inv not found in Blintit
+- NY/23-24/250: 11-Aug-23, INR 19570.00, remarks: Inv not found in Blintit
+- NY/23-24/251: 11-Aug-23, INR 14960.00, remarks: Inv not found in Blintit
+- NY/23-24/264: 25-Aug-23, INR 22475.00, remarks: Inv not found in Blintit
+- NY/23-24/270: 30-Aug-23, INR 44897.00, remarks: Inv not found in Blintit
+- NY/23-24/271: 30-Aug-23, INR 57618.00, remarks: Inv not found in Blintit
+- NY/23-24/272: 30-Aug-23, INR 36141.00, remarks: Inv not found in Blintit
+- NY/23-24/274: 31-Aug-23, INR 38462.00, remarks: Inv not found in Blintit
+- NY/23-24/275: 31-Aug-23, INR 26869.00, remarks: Inv not found in Blintit
+- NY/23-24/276: 31-Aug-23, INR 25802.00, remarks: Inv not found in Blintit
+- NY/23-24/293: 21-Sep-23, INR 55400.00, remarks: Inv not found in Blintit
+- NY/23-24/298: 28-Sep-23, INR 26827.00, remarks: Inv not found in Blintit
+- NY/23-24/299: 28-Sep-23, INR 71408.00, remarks: Inv not found in Blintit
+- NY/23-24/319: 24-Oct-23, INR 110709.00, remarks: Inv not found in Blintit
+- NY/23-24/353: 2-Nov-23, INR 30474.00, remarks: Inv not found in Blintit
+- NY/23-24/366: 24-Nov-23, INR 74498.00, remarks: Inv not found in Blintit
+- NY/23-24/369: 24-Nov-23, INR 31071.00, remarks: Inv not found in Blintit
+- NY/23-24/411: 19-Jan-24, INR 58210.00, remarks: Inv not found in Blintit
+- NY/23-24/422: 31-Jan-24, INR 30910.00, remarks: Inv not found in Blintit
+- NY/23-24/440: 26-Feb-24, INR 56092.00, remarks: Inv not found in Blintit
+- NY/23-24/446: 28-Feb-24, INR 22628.00, remarks: Inv not found in Blintit
+- NY/23-24/465: 15-Mar-24, INR 18044.00, remarks: Inv not found in Blintit
+
+Unresolved Blinkit-only invoices:
+
+Matched invoices (rounding ok):
+- NY/23-24/092: Tally 43758.00, Blinkit 43758.04, diff 0.04
+- NY/23-24/122: Tally 31469.00, Blinkit 31468.78, diff -0.22
+- NY/23-24/123: Tally 26066.00, Blinkit 26066.35, diff 0.35
+- NY/23-24/149: Tally 114456.00, Blinkit 114456.37, diff 0.37
+- NY/23-24/202: Tally 30726.00, Blinkit 30725.86, diff -0.14
+- NY/23-24/215: Tally 18985.00, Blinkit 18984.63, diff -0.37
+- NY/23-24/237: Tally 62565.00, Blinkit 62564.70, diff -0.30
+- NY/23-24/238: Tally 32837.00, Blinkit 32837.58, diff 0.58
+- NY/23-24/257: Tally 45314.00, Blinkit 45313.71, diff -0.29
+- NY/23-24/262: Tally 113985.00, Blinkit 113985.29, diff 0.29
+- NY/23-24/282: Tally 57674.00, Blinkit 57674.01, diff 0.01
+- NY/23-24/287: Tally 19907.84, Blinkit 19908.07, diff 0.23
+- NY/23-24/288: Tally 17232.64, Blinkit 17232.55, diff -0.09
+- NY/23-24/374: Tally 118111.00, Blinkit 118111.78, diff 0.78
+- NY/23-24/378: Tally 64772.00, Blinkit 64771.68, diff -0.32
+- NY/23-24/387: Tally 28195.00, Blinkit 28195.31, diff 0.31
+- NY/23-24/398: Tally 65322.00, Blinkit 65321.98, diff -0.02
+- NY/23-24/402: Tally 49899.00, Blinkit 49898.72, diff -0.28
+- NY/23-24/409: Tally 60923.00, Blinkit 60923.45, diff 0.45
+- NY/23-24/416: Tally 32121.00, Blinkit 32120.68, diff -0.32
+- NY/23-24/433: Tally 118988.00, Blinkit 118988.14, diff 0.14
+- NY/23-24/438: Tally 44448.00, Blinkit 44448.62, diff 0.62
+- NY/23-24/491: Tally 83343.00, Blinkit 83343.63, diff 0.63
+- NY/24-25/17: Tally 47426.00, Blinkit 47425.88, diff -0.12
+- NY/24-25/23: Tally 92331.00, Blinkit 92330.70, diff -0.30
+- NY/24-25/25: Tally 100329.00, Blinkit 100329.41, diff 0.41
+
+Blinkit TDS reversals only:
+- 30/06/2023: 1.64 (TDS-REV-JUNE-60 - due on 30/06/2023)
+- 31/07/2023: 0.57 (TDS-REV-JUL-125 - due on 31/07/2023)
+- 31/08/2023: 5.76 (TDS-REV-AUG-20 - due on 31/08/2023)
+- 31/08/2023: 5.01 (TDS-REV-AUG-390 - due on 31/08/2023)
+- 31/08/2023: 23.04 (TDS-REV-AUG-414 - due on 31/08/2023)
+- 31/08/2023: 35.46 (TDS-REV-AUG-516 - due on 31/08/2023)
+- 31/08/2023: 8.82 (TDS-REV-AUG-559 - due on 31/08/2023)
+- 31/08/2023: 4.73 (TDS-REV-AUG-599 - due on 31/08/2023)
+- 30/09/2023: 3.01 (TDS-REV-SEP-57 - due on 30/09/2023)
+- 30/09/2023: 11.62 (TDS-REV-SEP-153 - due on 30/09/2023)
+- 31/10/2023: 9.40 (TDS-REV-OCT-67 - due on 31/10/2023)
+- 31/12/2023: 38.92 (TDS-REV-DEC-80 - due on 31/12/2023)
+- 31/01/2024: 3.16 (TDS-REV-JAN-78 - due on 31/01/2024)
+- 29/02/2024: 4.99 (TDS-REV-FEB-76 - due on 29/02/2024)
+- 31/03/2024: 1.19 (TDS-REV-MAR-78 - due on 31/03/2024)

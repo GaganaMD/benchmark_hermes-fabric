@@ -1,0 +1,3 @@
+i have uploaded tally bills and blinkit billls, i need you to reconcile between these 2 files and tell me what is matching and what is not
+
+the required files are in /reconcile/data

@@ -1,0 +1,4 @@
+invoice,status,tally_date,blinkit_date,tally_amount,blinkit_amount,difference_blinkit_minus_tally,tally_remarks,blinkit_remarks
+NY/23-24/091,AMOUNT_MISMATCH,27-May-23,17/08/2023,65050.00,65085.58,35.58,,Amount Mismatch
+NY/23-24/308,AMOUNT_MISMATCH,6-Oct-23,15/12/2023,265155.00,265156.29,1.29,,
+NY/23-24/444,AMOUNT_MISMATCH,29-Feb-24,22/03/2024,231804.00,231805.70,1.70,,

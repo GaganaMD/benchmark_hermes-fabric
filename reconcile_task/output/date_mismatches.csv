@@ -1,0 +1,2 @@
+reconciliation_status,match_stage,tally_row_id,blinkit_row_id,tally_invoice_number,blinkit_invoice_number,tally_invoice_number_clean,blinkit_invoice_number_clean,tally_invoice_date,blinkit_invoice_date,tally_invoice_date_clean,blinkit_invoice_date_clean,tally_amount,blinkit_amount,amount_difference,date_difference_days,remarks
+DATE_MISMATCH,STAGE_2_3_SAME_INVOICE,44,24,NY/23-24/282,NY/23-24/282,NY/23-24/282,NY/23-24/282,8-Sep-23,18/09/2023,2023-09-08,2023-09-18,57674.00,57674.01,-0.01,-10,Invoice number and amount matched but date differs

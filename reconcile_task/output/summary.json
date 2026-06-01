@@ -1,0 +1,15 @@
+{
+  "tally_invoice_rows": 58,
+  "blinkit_bill_rows_excluding_tds": 30,
+  "blinkit_tds_reversal_rows": 15,
+  "matched_rounding_ok": 26,
+  "amount_mismatch": 3,
+  "tally_only": 29,
+  "blinkit_only": 1,
+  "probable_invoice_number_mismatch": 1,
+  "tally_total_rows_sum": "3449187.48",
+  "blinkit_invoice_rows_sum_excl_tds": "2324215.04",
+  "blinkit_tds_total": "157.32",
+  "blinkit_total_including_tds": "2324372.36",
+  "total_amount_mismatch_abs": "38.57"
+}
