@@ -10,5 +10,9 @@ DD/Vlayx_DD_work/output/**/image_review.csv
 DD/Vlayx_DD_work/output/**/image_review_contact_sheet.jpg
 DD/Vlayx_DD_work/output/**/fabric_prompt_used.txt
 DD/Vlayx_DD_work/output/**/*_preview.html
+DD/Vlayx_DD_work/output/**/*.pdf
+DD/Vlayx_DD_work/output/**/*.pptx
+DD/Vlayx_DD_work/output/**/fabric_risk_synthesis_latest.md
+DD/Vlayx_DD_work/output/vlayx_due_diligence_comparison.md
 DD/Vlayx_DD_work/output/x_thread_*.md
 DD/Vlayx_DD_work/output/x_thread_*_assets/
