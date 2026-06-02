@@ -10,3 +10,5 @@ DD/Vlayx_DD_work/output/**/image_review.csv
 DD/Vlayx_DD_work/output/**/image_review_contact_sheet.jpg
 DD/Vlayx_DD_work/output/**/fabric_prompt_used.txt
 DD/Vlayx_DD_work/output/**/*_preview.html
+DD/Vlayx_DD_work/output/x_thread_*.md
+DD/Vlayx_DD_work/output/x_thread_*_assets/
