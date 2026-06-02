@@ -70,7 +70,18 @@ Corpus/output summary:
 
 ![Due diligence latency](docs/assets/dd_latency.png)
 
-The DD source corpus, extracted text, generated decks, manifests, coverage files, and source registers are intentionally kept local-only because they may contain client-sensitive material. The public repo keeps only aggregate benchmark summaries and non-sensitive visual assets.
+Key public artifacts:
+
+- [`DD/Vlayx_DD_work/output/vlayx_due_diligence_comparison.md`](DD/Vlayx_DD_work/output/vlayx_due_diligence_comparison.md)
+- [`DD/Vlayx_DD_work/output/Vlayx_Due_Diligence_Report.pdf`](DD/Vlayx_DD_work/output/Vlayx_Due_Diligence_Report.pdf)
+- [`DD/Vlayx_DD_work/output/Vlayx_Due_Diligence_Report.pptx`](DD/Vlayx_DD_work/output/Vlayx_Due_Diligence_Report.pptx)
+- [`DD/Vlayx_DD_work/output/only codex/Vlayx_Due_Diligence_Report.pdf`](DD/Vlayx_DD_work/output/only%20codex/Vlayx_Due_Diligence_Report.pdf)
+- [`DD/Vlayx_DD_work/output/codex+fabric/Vlayx_Due_Diligence_Report.pdf`](DD/Vlayx_DD_work/output/codex+fabric/Vlayx_Due_Diligence_Report.pdf)
+- [`DD/Vlayx_DD_work/output/codex+fabric/fabric_risk_synthesis_latest.md`](DD/Vlayx_DD_work/output/codex+fabric/fabric_risk_synthesis_latest.md)
+- [`DD/Vlayx_DD_work/output/codex+fabric+hermes/Vlayx_Due_Diligence_Report.pdf`](DD/Vlayx_DD_work/output/codex+fabric+hermes/Vlayx_Due_Diligence_Report.pdf)
+- [`DD/Vlayx_DD_work/output/codex+fabric+hermes/fabric_risk_synthesis_latest.md`](DD/Vlayx_DD_work/output/codex+fabric+hermes/fabric_risk_synthesis_latest.md)
+
+The DD source corpus, extracted text, manifests, coverage files, source registers, preview HTML, and image-review internals are intentionally kept local-only because they may contain client-sensitive material.
 
 ## Bridge Context
 

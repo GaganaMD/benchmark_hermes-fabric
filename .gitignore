@@ -1,5 +1,12 @@
-# Local confidential diligence corpus and generated DD outputs.
+# Local confidential diligence corpus and generated DD internals.
 DD/Vlayx inputs - for testing/
 DD/Vlayx_DD_work/extracted_text/
 DD/Vlayx_DD_work/zip_expanded/
-DD/Vlayx_DD_work/output/
+DD/Vlayx_DD_work/output/**/manifest.csv
+DD/Vlayx_DD_work/output/**/manifest.json
+DD/Vlayx_DD_work/output/**/coverage.csv
+DD/Vlayx_DD_work/output/**/source_register.csv
+DD/Vlayx_DD_work/output/**/image_review.csv
+DD/Vlayx_DD_work/output/**/image_review_contact_sheet.jpg
+DD/Vlayx_DD_work/output/**/fabric_prompt_used.txt
+DD/Vlayx_DD_work/output/**/*_preview.html
