@@ -1,0 +1,35 @@
+Experiment: Vlayx due diligence, codex+fabric
+Date: 2026-06-01
+
+Important note:
+No Hermes prompt was fed for this Vlayx due-diligence run. The run used Fabric first via the `analyze_risk` pattern, then Codex synthesized and generated the PowerPoint deck and audit artifacts.
+
+Fabric command pattern:
+fabric --pattern analyze_risk
+
+Full Fabric input prompt used:
+Vlayx due diligence corpus summary: 582 tree files inventoried, 135 ZIP-expanded files, 0 extraction errors. Key issues: FY26 books/provisional income and cash presentation mismatch; plaintext GST/tax/TRACES credentials; revenue invoice concentration in Shopsense/Fynd; AR aging includes old receivables; pipeline evidence incomplete; security evidence gaps. Provide a concise risk synthesis with diligence follow-ups.
+
+Original user task prompt that initiated the DD run:
+Produce a complete due diligence report as a PowerPoint deck by
+ investigating every file in the target folder tree. The goal is met ONLY when:
+ (a) the entire nested folder tree has been recursively inventoried, (b) every
+ readable file's substantive content has been extracted, (c) findings are mapped
+ to all DD strands with each claim traced to a source file, (d) risks,
+ inconsistencies, and data gaps are explicitly listed, and (e) a finished .pptx
+ deck exists with all required slides. Do not consider the goal complete if any
+ nested subfolder was skipped or any claim in the deck is unsourced.
+
+ TARGET
+ Root folder: /Users/basethesis/Desktop/benchmark_hermes-fabric/DD/Vlayx inputs - for testing
+ Deal context:
+ Subject: Vlayx
+
+ WHAT DUE DILIGENCE IS
+ Due diligence is the investigation done before committing to a deal. The core
+ principle is verification, not trust: do not accept claims at face value -- check
+ them against the underlying documents. The goal is risk discovery -- finding
+ problems before they become the buyer's/investor's problems. A fatal problem
+ found during diligence is a successful outcome, not a failure.
+
+Use Fabric patterns first, then synthesize the result.
