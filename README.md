@@ -22,7 +22,7 @@ The main question is not only "which stack is fastest?" It is:
 
 ## Headline Results
 
-![Agent benchmarks need layers](DD/Vlayx_DD_work/output/x_thread_three_benchmark_layers_assets/x_thread_three_benchmark_layers_card_summary.png)
+![Agent benchmarks need layers](docs/assets/benchmark_layers_card_summary.png)
 
 Latency is end-to-end agent/runtime latency, not only model inference.
 
@@ -34,7 +34,7 @@ The coding benchmark compares three setups across 10 tasks:
 - **Fabric + Codex**: Fabric-style prompt restructuring before Codex.
 - **Hermes + Fabric + Codex**: more structured orchestration and recovery/verification behavior.
 
-![Coding task latency](DD/Vlayx_DD_work/output/x_thread_three_benchmark_layers_assets/x_thread_three_benchmark_layers_02_coding_latency.png)
+![Coding task latency](docs/assets/coding_latency.png)
 
 Key artifact:
 
@@ -44,9 +44,9 @@ Key artifact:
 
 The reconciliation task compares Tally bills against Blinkit bills and classifies matched invoices, amount mismatches, invoice-number mismatches, Tally-only invoices, and Blinkit-only/TDS reversal rows.
 
-![Reconciliation findings](DD/Vlayx_DD_work/output/x_thread_three_benchmark_layers_assets/x_thread_three_benchmark_layers_05_reconciliation_findings.png)
+![Reconciliation findings](docs/assets/reconciliation_findings.png)
 
-![Reconciliation latency](DD/Vlayx_DD_work/output/x_thread_three_benchmark_layers_assets/x_thread_three_benchmark_layers_06_reconciliation_latency.png)
+![Reconciliation latency](docs/assets/reconciliation_latency.png)
 
 Key artifacts:
 
@@ -68,18 +68,9 @@ Corpus/output summary:
 - 21-slide sourced deck
 - PDF exports for GitHub preview
 
-![Due diligence latency](DD/Vlayx_DD_work/output/x_thread_three_benchmark_layers_assets/x_thread_three_benchmark_layers_08_dd_latency.png)
+![Due diligence latency](docs/assets/dd_latency.png)
 
-Key artifacts:
-
-- [`DD/Vlayx_DD_work/output/vlayx_due_diligence_comparison.md`](DD/Vlayx_DD_work/output/vlayx_due_diligence_comparison.md)
-- [`DD/Vlayx_DD_work/output/Vlayx_Due_Diligence_Report.pdf`](DD/Vlayx_DD_work/output/Vlayx_Due_Diligence_Report.pdf)
-- [`DD/Vlayx_DD_work/output/codex+fabric/Vlayx_Due_Diligence_Report.pdf`](DD/Vlayx_DD_work/output/codex+fabric/Vlayx_Due_Diligence_Report.pdf)
-- [`DD/Vlayx_DD_work/output/codex+fabric+hermes/Vlayx_Due_Diligence_Report.pdf`](DD/Vlayx_DD_work/output/codex+fabric+hermes/Vlayx_Due_Diligence_Report.pdf)
-- [`DD/Vlayx_DD_work/output/only codex/Vlayx_Due_Diligence_Report.pdf`](DD/Vlayx_DD_work/output/only%20codex/Vlayx_Due_Diligence_Report.pdf)
-- [`DD/Vlayx_DD_work/output/manifest.csv`](DD/Vlayx_DD_work/output/manifest.csv)
-- [`DD/Vlayx_DD_work/output/coverage.csv`](DD/Vlayx_DD_work/output/coverage.csv)
-- [`DD/Vlayx_DD_work/output/source_register.csv`](DD/Vlayx_DD_work/output/source_register.csv)
+The DD source corpus, extracted text, generated decks, manifests, coverage files, and source registers are intentionally kept local-only because they may contain client-sensitive material. The public repo keeps only aggregate benchmark summaries and non-sensitive visual assets.
 
 ## Bridge Context
 
@@ -89,7 +80,7 @@ This benchmark repo is paired with the Herbric bridge repo:
 
 Herbric demonstrates a lightweight Fabric -> Hermes bridge: chunk input, run Fabric patterns, aggregate context, send the structured context into Hermes, and keep every intermediate artifact inspectable.
 
-![Where orchestration helps](DD/Vlayx_DD_work/output/x_thread_three_benchmark_layers_assets/x_thread_three_benchmark_layers_12_orchestration_use.png)
+![Where orchestration helps](docs/assets/orchestration_use.png)
 
 ## What To Take Away
 
