@@ -1,7 +1,9 @@
-# Due Diligence Output Artifacts
+# Due Diligence Benchmark Output Artifacts
 
-The generated Vlayx due diligence reports and detailed output artifacts are intentionally not included in the public repository.
+This folder keeps benchmark-facing output artifacts from the due diligence experiment.
 
-Those files were removed from GitHub because they are derived from a client diligence corpus and may contain confidential business, financial, tax, contractual, employment, credential, or source-trace information. The local working copy may still contain the full reports and supporting audit files for continued private analysis.
+The generated Vlayx company diligence reports themselves are intentionally not included in the public repository. That includes PPTX/PDF report files, preview HTML, manifests, coverage files, source registers, image-review files, extracted text, ZIP-expanded files, and detailed source-linked audit trails.
 
-The public repository keeps only benchmark-safe summary material, such as aggregate latency charts and high-level comparison assets. Detailed DD decks, source registers, manifests, extracted text, coverage files, preview HTML, and source-linked audit trails should remain local-only unless they are explicitly reviewed and sanitized.
+Those excluded files are derived from a private diligence corpus and may contain confidential business, financial, tax, contractual, employment, credential, or source-trace information. They can remain in the local working copy for private analysis, but they should not be published without a separate sanitization review.
+
+The public repository may include benchmark-safe material from this folder, such as comparison tables, latency summaries, X/thread drafts, and generated benchmark images. Those artifacts describe the benchmarking process and results rather than publishing the underlying company reports.
