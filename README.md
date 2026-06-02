@@ -24,12 +24,6 @@ The main question is not only "which stack is fastest?" It is:
 
 ![Agent benchmarks need layers](DD/Vlayx_DD_work/output/x_thread_three_benchmark_layers_assets/x_thread_three_benchmark_layers_card_summary.png)
 
-| Layer | Codex | Fabric + Codex | Hermes + Fabric + Codex |
-| --- | ---: | ---: | ---: |
-| Coding tasks, average | 59.1s | 94.6s | 80.9s |
-| Reconciliation | 78s | 83s | 270s |
-| Due diligence | 10m48s | 14m52s | 20m34s |
-
 Latency is end-to-end agent/runtime latency, not only model inference.
 
 ## Initial Coding Benchmark
